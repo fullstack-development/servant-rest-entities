@@ -1,0 +1,4 @@
+.stack-work/
+user-service.cabal
+*~
+.vscode
