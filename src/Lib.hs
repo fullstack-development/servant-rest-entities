@@ -19,6 +19,8 @@ import Servant
 
 defVal = error "Value is undefined"
 
+type instance Relations User = Auth
+
 instance Serializable User (View User) where
   serialize User {..} =
     UserView
@@ -29,7 +31,7 @@ instance Serializable User (View User) where
     }
 
 instance Deserializable User (Body User) where
-  deserialize Nothing body = do
+  deserialize Nothing UserBody {..} = do
     time <- getCurrentTime
     return
       User
@@ -37,18 +39,18 @@ instance Deserializable User (Body User) where
       , userAuth =
           Auth
           { authId = defVal
-          , authPassword = userBodyPassword body
+          , authPassword = userBodyPassword
           , authCreatedAt = time
           }
-      , userFirstName = userBodyFirstName body
-      , userLastName = userBodyLastName body
-      , userIsStaff = userBodyIsStaff body
+      , userFirstName = userBodyFirstName
+      , userLastName = userBodyLastName
+      , userIsStaff = userBodyIsStaff
       , userCreatedAt = time
       }
 
 instance DBEntity DB.User where
-  save user = do
-    return undefined
+  save user = pure undefined
+  deleteFromDB _ _ = pure undefined
 
 instance DBConvertable User DB.User where
   dbConvertTo user rels = undefined
@@ -63,7 +65,7 @@ instance CRUDEntity User where
                           userViewIsStaff :: Bool}
   type DBModel User = DB.User
   type Api User = CRUDApi "users" (Body User) (View User)
-  server _ = retrieve :<|> list :<|> create
+  server _ = retrieve :<|> list :<|> create :<|> delete (Proxy :: Proxy User)
 
 runUserService :: IO ()
 runUserService = putStrLn "Running user service stub"
