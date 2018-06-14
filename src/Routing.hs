@@ -22,9 +22,9 @@ type CreateApi (name :: Symbol) body view
    = name :> ReqBody '[ JSON] body :> Put '[ JSON] view
 
 type UpdateApi (name :: Symbol) body view
-   = name :> Capture "id" Int :> Patch '[ JSON] view
+   = name :> Capture "id" Int :> ReqBody '[ JSON] body :> Patch '[ JSON] view
 
 type DeleteApi (name :: Symbol) = name :> Capture "id" Int :> Patch '[ JSON] ()
 
 type CRUDApi (name :: Symbol) body view
-   = RetrieveApi name view :<|> ListApi name view :<|> CreateApi name body view :<|> DeleteApi name
+   = RetrieveApi name view :<|> ListApi name view :<|> CreateApi name body view :<|> DeleteApi name :<|> UpdateApi name body view

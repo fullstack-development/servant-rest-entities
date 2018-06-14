@@ -10,6 +10,7 @@ module Lib
 
 import qualified DB
 import Data.Proxy
+import Data.Maybe
 import qualified Data.Text as T
 import Data.Time
 import Handlers
@@ -31,11 +32,11 @@ instance Serializable User (View User) where
     }
 
 instance Deserializable User (Body User) where
-  deserialize Nothing UserBody {..} = do
+  deserialize pk UserBody {..} = do
     time <- getCurrentTime
     return
       User
-      { userId = defVal
+      { userId = fromMaybe defVal pk
       , userAuth =
           Auth
           { authId = defVal
@@ -65,7 +66,8 @@ instance CRUDEntity User where
                           userViewIsStaff :: Bool}
   type DBModel User = DB.User
   type Api User = CRUDApi "users" (Body User) (View User)
-  server _ = retrieve :<|> list :<|> create :<|> delete (Proxy :: Proxy User)
+  server _ =
+    retrieve :<|> list :<|> create :<|> delete (Proxy :: Proxy User) :<|> update
 
 runUserService :: IO ()
 runUserService = putStrLn "Running user service stub"
