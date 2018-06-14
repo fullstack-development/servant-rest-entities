@@ -21,5 +21,5 @@ class ( Generic e
   | e -> e
   where
   data RetrieveActionView e
-  retrieve :: Handler (RetrieveActionView e)
+  retrieve :: Int -> Handler (RetrieveActionView e)
   retrieve = undefined

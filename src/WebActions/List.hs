@@ -21,5 +21,5 @@ class ( Generic e
   | e -> e
   where
   data ListActionView e
-  list :: Handler (ListActionView e)
+  list :: Handler [ListActionView e]
   list = undefined

@@ -5,7 +5,7 @@
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE RecordWildCards #-}
 
-module Lib
+module Examples.SimpleUser
   ( runUserService
   ) where
 
@@ -23,6 +23,8 @@ import Routing
 import Serializables
 import WebActions.Create
 import WebActions.Delete
+import WebActions.List
+import WebActions.Retrieve
 import WebActions.Update
 
 defVal = error "Value is undefined"
@@ -85,6 +87,12 @@ instance Serializable User (UpdateActionView User) where
 instance Deserializable User (UpdateActionBody User) where
   deserialize pk (UpdateUserBody userBody) = deserializeUserBody pk userBody
 
+instance Serializable User (ListActionView User) where
+  serialize user = ListUserView $ serializeUserBody user
+
+instance Serializable User (RetrieveActionView User) where
+  serialize user = RetrieveUserView $ serializeUserBody user
+
 instance HasCreateMethod User where
   data CreateActionBody User = CreateUserBody UserBody
   data CreateActionView User = CreateUserView UserView
@@ -95,9 +103,16 @@ instance HasUpdateMethod User where
 
 instance HasDeleteMethod User
 
+instance HasListMethod User where
+  data ListActionView User = ListUserView UserView
+
+instance HasRetrieveMethod User where
+  data RetrieveActionView User = RetrieveUserView UserView
+
 instance Resource User where
-  type Api User = CreateApi "users" (CreateActionBody User) (CreateActionView User) :<|> DeleteApi "users" :<|> UpdateApi "users" (UpdateActionBody User) (UpdateActionView User)
-  server _ = create :<|> delete (Proxy :: Proxy User) :<|> update
+  type Api User = CreateApi "users" (CreateActionBody User) (CreateActionView User) :<|> DeleteApi "users" :<|> UpdateApi "users" (UpdateActionBody User) (UpdateActionView User) :<|> ListApi "users" (ListActionView User) :<|> RetrieveApi "users" (RetrieveActionView User)
+  server _ =
+    create :<|> delete (Proxy :: Proxy User) :<|> update :<|> list :<|> retrieve
 
 runUserService :: IO ()
 runUserService = putStrLn "Running user service stub"

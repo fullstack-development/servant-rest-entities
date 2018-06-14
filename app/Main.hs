@@ -1,6 +1,6 @@
 module Main where
 
-import Lib
+import Examples.SimpleUser
 
 main :: IO ()
 main = runUserService
