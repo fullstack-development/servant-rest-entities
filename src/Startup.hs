@@ -4,15 +4,20 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE DeriveAnyClass #-}
+{-# LANGUAGE DeriveGeneric #-}
 
-module Lib
+module Startup
   ( runUserService
   ) where
 
+import qualified Data.Aeson as Aeson
 import Data.Maybe
 import Data.Proxy
 import qualified Data.Text as T
 import Data.Time
+import GHC.Generics
+import Network.Wai.Handler.Warp
 import Servant
 
 import qualified DB
@@ -42,20 +47,20 @@ data UserView = UserView
   , userViewFirstName :: T.Text
   , userViewLastName :: T.Text
   , userViewIsStaff :: Bool
-  }
+  } deriving (Generic, Aeson.ToJSON)
 
 data UserBody = UserBody
   { userBodyFirstName :: T.Text
   , userBodyLastName :: T.Text
   , userBodyIsStaff :: Bool
   , userBodyPassword :: T.Text
-  }
+  } deriving (Generic, Aeson.FromJSON)
 
 deserializeUserBody pk UserBody {..} = do
   time <- getCurrentTime
   return
     User
-    { userId = fromMaybe defVal pk
+    { userId = maybe Empty Id pk
     , userAuth =
         Auth
         {authId = defVal, authPassword = userBodyPassword, authCreatedAt = time}
@@ -67,7 +72,7 @@ deserializeUserBody pk UserBody {..} = do
 
 serializeUserBody User {..} =
   UserView
-  { userViewId = userId
+  { userViewId = fromId userId
   , userViewFirstName = userFirstName
   , userViewLastName = userLastName
   , userViewIsStaff = userIsStaff
@@ -87,11 +92,15 @@ instance Deserializable User (UpdateActionBody User) where
 
 instance HasCreateMethod User where
   data CreateActionBody User = CreateUserBody UserBody
+                           deriving (Generic, Aeson.FromJSON)
   data CreateActionView User = CreateUserView UserView
+                           deriving (Generic, Aeson.ToJSON)
 
 instance HasUpdateMethod User where
   data UpdateActionBody User = UpdateUserBody UserBody
+                           deriving (Generic, Aeson.FromJSON)
   data UpdateActionView User = UpdateUserView UserView
+                           deriving (Generic, Aeson.ToJSON)
 
 instance HasDeleteMethod User
 
@@ -99,5 +108,13 @@ instance Resource User where
   type Api User = CreateApi "users" (CreateActionBody User) (CreateActionView User) :<|> DeleteApi "users" :<|> UpdateApi "users" (UpdateActionBody User) (UpdateActionView User)
   server _ = create :<|> delete (Proxy :: Proxy User) :<|> update
 
+fullServer = server (Proxy :: Proxy User)
+
+serverApi :: Proxy (Api User)
+serverApi = Proxy
+
+serverApp :: Application
+serverApp = serve serverApi fullServer
+
 runUserService :: IO ()
-runUserService = putStrLn "Running user service stub"
+runUserService = run 8081 serverApp
