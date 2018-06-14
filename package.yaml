@@ -27,6 +27,7 @@ dependencies:
 - servant
 - servant-server
 - aeson
+- warp
 
 library:
   source-dirs: src
