@@ -21,5 +21,5 @@ class ( Generic e
   | e -> e
   where
   data RetrieveActionView e
-  retrieve :: Int -> Handler (RetrieveActionView e)
+  retrieve :: (Monad m, MonadIO m) => Int -> m (RetrieveActionView e)
   retrieve = undefined

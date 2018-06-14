@@ -23,7 +23,7 @@ class ( Generic e
   where
   data CreateActionBody e
   data CreateActionView e
-  create :: CreateActionBody e -> Handler (CreateActionView e)
+  create :: (Monad m, MonadIO m) => CreateActionBody e -> m (CreateActionView e)
   create body = do
     model <- liftIO $ deserialize Nothing body
     let dbModel = dbConvertTo model Nothing

@@ -24,10 +24,17 @@ dependencies:
 - bytestring
 - text
 - time
+- exceptions
+- transformers
+- mtl
 - servant
 - servant-server
 - aeson
 - warp
+
+- beam-core
+- beam-postgres
+- postgresql-simple
 
 library:
   source-dirs: src

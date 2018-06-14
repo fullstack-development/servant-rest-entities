@@ -23,7 +23,11 @@ class ( Generic e
   where
   data UpdateActionBody e
   data UpdateActionView e
-  update :: Int -> UpdateActionBody e -> Handler (UpdateActionView e)
+  update ::
+       (Monad m, MonadIO m)
+    => Int
+    -> UpdateActionBody e
+    -> m (UpdateActionView e)
   update entityId body = do
     model <- liftIO $ deserialize (Just entityId) body
     let dbModel = dbConvertTo model Nothing

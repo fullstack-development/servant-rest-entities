@@ -7,7 +7,7 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DeriveAnyClass #-}
 
-module Examples.SimpleUser
+module Examples.SimpleUser.Server
   ( runUserService
   ) where
 
@@ -20,8 +20,9 @@ import GHC.Generics
 import Network.Wai.Handler.Warp
 import Servant
 
-import qualified DB
 import DBEntity
+import qualified Examples.SimpleUser.DB as DB
+import Examples.SimpleUser.Model
 import Model
 import Resource
 import Routing
@@ -35,6 +36,7 @@ import WebActions.Update
 defVal = error "Value is undefined"
 
 instance DBEntity DB.User where
+  getAllEntities _ = pure DB.users
   save user = pure undefined
   deleteFromDB _ _ = pure undefined
 
@@ -122,8 +124,8 @@ instance HasRetrieveMethod User where
 
 instance Resource User where
   type Api User = CreateApi "users" (CreateActionBody User) (CreateActionView User) :<|> DeleteApi "users" :<|> UpdateApi "users" (UpdateActionBody User) (UpdateActionView User) :<|> ListApi "users" (ListActionView User) :<|> RetrieveApi "users" (RetrieveActionView User)
-  server _ =
-    create :<|> delete (Proxy :: Proxy User) :<|> update :<|> list :<|> retrieve
+  server proxyEntity =
+    create :<|> delete proxyEntity :<|> update :<|> list :<|> retrieve
 
 fullServer = server (Proxy :: Proxy User)
 

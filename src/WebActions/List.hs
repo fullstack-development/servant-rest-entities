@@ -21,5 +21,9 @@ class ( Generic e
   | e -> e
   where
   data ListActionView e
-  list :: Handler [ListActionView e]
-  list = undefined
+  list :: (Monad m, MonadIO m) => m [ListActionView e]
+  list = do
+    dbModels <- liftIO $ getAllEntities (Proxy :: Proxy (DBModel e))
+    let entityModels = fmap (`dbConvertFrom` Nothing) dbModels
+    let view = map serialize entityModels
+    pure view

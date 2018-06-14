@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module DB where
+module Examples.SimpleUser.DB where
 
 import Data.Text
 import Data.Time

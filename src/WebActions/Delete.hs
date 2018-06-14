@@ -6,6 +6,7 @@
 
 module WebActions.Delete where
 
+import Control.Monad.Except
 import Control.Monad.IO.Class
 import qualified Data.ByteString.Lazy.Char8 as BL
 import GHC.Generics
@@ -18,7 +19,8 @@ class (Generic e, DBConvertable e (DBModel e)) =>
       HasDeleteMethod e
   | e -> e
   where
-  delete :: Proxy e -> Int -> Handler ()
+  delete ::
+       (Monad m, MonadIO m, MonadError ServantErr m) => Proxy e -> Int -> m ()
   delete proxyType entityId = do
     result <- liftIO $ deleteFromDB (Proxy :: Proxy (DBModel e)) entityId
     case result of

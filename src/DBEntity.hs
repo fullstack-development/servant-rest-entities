@@ -25,4 +25,5 @@ class (DBEntity to) =>
 
 class DBEntity e where
   save :: e -> IO e
+  getAllEntities :: Proxy e -> IO [e]
   deleteFromDB :: Proxy e -> Int -> IO (Either String ())

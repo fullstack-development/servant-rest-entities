@@ -1,5 +1,6 @@
 .stack-work/
 user-service.cabal
 *~
+.idea
 .vscode
 .history
