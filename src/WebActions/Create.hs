@@ -26,7 +26,7 @@ class ( Generic e
   create :: CreateActionBody e -> Handler (CreateActionView e)
   create body = do
     model <- liftIO $ deserialize Nothing body
-    let dbModel = dbConvertTo model Nothing
+    let (dbModel, dbRels) = dbConvertTo model Nothing
     newDbModel <- liftIO $ save dbModel
     let newModel = dbConvertFrom newDbModel Nothing
     let view = serialize newModel

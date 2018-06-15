@@ -20,8 +20,8 @@ import GHC.Generics
 import Network.Wai.Handler.Warp
 import Servant
 
-import qualified DB
 import DBEntity
+import qualified Examples.DB as DB
 import Model
 import Resource
 import Routing
@@ -32,17 +32,67 @@ import WebActions.List
 import WebActions.Retrieve
 import WebActions.Update
 
-defVal = error "Value is undefined"
+type instance DBModel Auth = DB.Auth
 
-instance DBEntity DB.User where
+type instance DBModel User = DB.User
+
+instance DBEntity User DB.User where
   save user = pure undefined
   deleteFromDB _ _ = pure undefined
+  getByIdFromDB _ = pure Nothing
+
+instance DBEntity Auth DB.Auth where
+  save user = pure undefined
+  deleteFromDB _ _ = pure undefined
+  getByIdFromDB _ = pure Nothing
+
+instance DBConvertable Auth DB.Auth where
+  type ChildRelations Auth = ()
+  type ParentRelations Auth = User
+  dbConvertTo Auth {..} (Just user) = (dbAuth, ())
+    where
+      dbAuth =
+        DB.Auth
+        { DB.authId =
+            if isIdEmpty authId
+              then DB.def
+              else DB.PrimaryKey (fromId authId)
+        , DB.authPassword = DB.Column authPassword
+        , DB.authCreatedAt = DB.Column authCreatedAt
+        , DB.authUserId = DB.ForeignKey (DB.PrimaryKey (fromId $ userId user))
+        }
+  dbConvertFrom DB.Auth {..} _ =
+    Auth
+    { authId = Id $ DB.fromPK authId
+    , authPassword = DB.fromColumn authPassword
+    , authCreatedAt = DB.fromColumn authCreatedAt
+    }
 
 instance DBConvertable User DB.User where
-  type DBModel User = DB.User
-  type Relations User = Auth
-  dbConvertTo user rels = undefined
-  dbConvertFrom dbUser = undefined
+  type ChildRelations User = Auth
+  type ParentRelations User = ()
+  dbConvertTo user@User {..} _ = (dbUser, dbAuth)
+    where
+      (dbAuth, rels) = dbConvertTo userAuth (Just user)
+      dbUser =
+        DB.User
+        { userId = DB.PrimaryKey (fromId userId)
+        , userFirstName = DB.Column userFirstName
+        , userLastName = DB.Column userLastName
+        , userCreatedAt = DB.Column userCreatedAt
+        , userIsStaff = DB.Column userIsStaff
+        }
+  dbConvertFrom DB.User {..} (Just auth) =
+    User
+    { userId = Id $ DB.fromPK userId
+    , userFirstName = DB.fromColumn userFirstName
+    , userLastName = DB.fromColumn userLastName
+    , userIsStaff = DB.fromColumn userIsStaff
+    , userCreatedAt = DB.fromColumn userCreatedAt
+    , userAuth = dbConvertFrom auth Nothing
+    }
+  dbConvertFrom _ Nothing =
+    error "You should pass all relations to user db converter."
 
 data UserView = UserView
   { userViewId :: Int
@@ -58,14 +108,14 @@ data UserBody = UserBody
   , userBodyPassword :: T.Text
   } deriving (Generic, Aeson.FromJSON)
 
-deserializeUserBody pk UserBody {..} = do
+deserializeUserBody Nothing UserBody {..} = do
   time <- getCurrentTime
   return
     User
-    { userId = maybe Empty Id pk
+    { userId = Empty
     , userAuth =
         Auth
-        {authId = defVal, authPassword = userBodyPassword, authCreatedAt = time}
+        {authId = Empty, authPassword = userBodyPassword, authCreatedAt = time}
     , userFirstName = userBodyFirstName
     , userLastName = userBodyLastName
     , userIsStaff = userBodyIsStaff

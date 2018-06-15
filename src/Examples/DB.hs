@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module DB where
+module Examples.DB where
 
 import Data.Text
 import Data.Time
@@ -10,9 +10,8 @@ newtype PrimaryKey a =
   PrimaryKey a
   deriving (Show, Eq)
 
-data ForeignKey a b =
+newtype ForeignKey a =
   ForeignKey a
-             b
   deriving (Show, Eq)
 
 newtype Column a =
@@ -31,10 +30,12 @@ data Auth = Auth
   { authId :: PrimaryKey Int
   , authPassword :: Column Text
   , authCreatedAt :: Column UTCTime
-  , authUserId :: ForeignKey (PrimaryKey Int) User
+  , authUserId :: ForeignKey (PrimaryKey Int)
   } deriving (Show, Eq)
 
-time = getCurrentTime
+fromColumn (Column v) = v
+
+fromPK (PrimaryKey pk) = pk
 
 users =
   [ User
@@ -58,12 +59,14 @@ auths =
     { authId = PrimaryKey 1
     , authPassword = Column "test test"
     , authCreatedAt = Column $ UTCTime (ModifiedJulianDay 0) 0
-    , authUserId = ForeignKey (PrimaryKey 1) (users !! 1)
+    , authUserId = ForeignKey (PrimaryKey 1)
     }
   , Auth
     { authId = PrimaryKey 2
     , authPassword = Column "test test"
     , authCreatedAt = Column $ UTCTime (ModifiedJulianDay 0) 0
-    , authUserId = ForeignKey (PrimaryKey 2) (users !! 2)
+    , authUserId = ForeignKey (PrimaryKey 2)
     }
   ]
+
+def = error "Def db val"

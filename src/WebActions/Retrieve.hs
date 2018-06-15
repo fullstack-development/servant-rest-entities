@@ -22,4 +22,9 @@ class ( Generic e
   where
   data RetrieveActionView e
   retrieve :: Int -> Handler (RetrieveActionView e)
-  retrieve = undefined
+  retrieve pk = do
+    Just (dbModel, dbRels) <-
+      liftIO $ getByIdWithRelsFromDB pk (Proxy :: Proxy (DBModel e))
+    let model = dbConvertFrom dbModel (Just dbRels)
+    let view = serialize model :: RetrieveActionView e
+    pure view

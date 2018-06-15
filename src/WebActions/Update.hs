@@ -11,6 +11,7 @@ import Servant
 
 import Control.Monad.IO.Class
 import DBEntity
+import Data.Proxy
 import Serializables
 
 class ( Generic e
@@ -25,9 +26,16 @@ class ( Generic e
   data UpdateActionView e
   update :: Int -> UpdateActionBody e -> Handler (UpdateActionView e)
   update entityId body = do
-    model <- liftIO $ deserialize (Just entityId) body
-    let dbModel = dbConvertTo model Nothing
+    modelUpdates <- liftIO $ deserialize (Just entityId) body -- Get updates
+    -- Get entity with all her relations
+    Just (dbModel, dbModelRels) <-
+      liftIO $ getByIdWithRelsFromDB entityId (Proxy :: Proxy (DBModel e))
+    -- Obtain updated model
+    let existingModel = dbConvertFrom dbModel (Just dbModelRels)
+    let updatedModel = existingModel -- TODO: Do update here - existingModel `patchBy` modelUpdates
+    -- Obtain new dbmodel
+    let (dbModel, dbRels) = dbConvertTo updatedModel Nothing
     updatedDbModel <- liftIO $ save dbModel
-    let updatedModel = dbConvertFrom updatedDbModel Nothing
-    let view = serialize updatedModel
+    let updatedModel = dbConvertFrom updatedDbModel (Just dbRels)
+    let view = serialize updatedModel :: UpdateActionView e
     pure view
