@@ -27,7 +27,7 @@ class ( Generic e
   create :: CreateActionBody e -> MonadDB (DBModel e) (CreateActionView e)
   create body = do
     model <- liftIO $ deserialize Nothing body
-    let dbModel = dbConvertTo model Nothing
+    let (dbModel, dbRels) = dbConvertTo model Nothing
     newDbModel <- save dbModel
     let newModel = dbConvertFrom newDbModel Nothing
     let view = serialize newModel

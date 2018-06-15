@@ -30,17 +30,22 @@ import Model
 getUsers :: Pg [DB.User]
 getUsers = runSelectReturningList . select . all_ $ (DB._user DB.demoBeamRestDb)
 
-instance DBEntity DB.User where
+instance DBEntity User DB.User where
   type MonadDB DB.User = ServerConfigReader
-  getAllEntities _ = do
+  getAllFromDB = do
     users <- runDB getUsers
     pure users
   save user = pure undefined
   deleteFromDB _ _ = pure undefined
+  getByIdFromDB _ = pure Nothing
+  getByIdWithRelsFromDB _ _ = undefined
+  getAllFromDBWithRels = undefined
+
+type instance DBModel User = DB.User
 
 instance DBConvertable User DB.User where
-  type DBModel User = DB.User
-  type Relations User = Auth
+  type ChildRelations User = Auth
+  type ParentRelations User = ()
   dbConvertTo user rels = undefined
   dbConvertFrom DB.User {..} _ =
     User

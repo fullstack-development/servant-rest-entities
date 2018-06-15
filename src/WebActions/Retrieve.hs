@@ -16,10 +16,16 @@ import Serializables
 class ( Generic e
       , Serializable e (RetrieveActionView e)
       , DBConvertable e (DBModel e)
+      , Monad (MonadDB (DBModel e))
       ) =>
       HasRetrieveMethod e
   | e -> e
   where
   data RetrieveActionView e
   retrieve :: Int -> MonadDB (DBModel e) (RetrieveActionView e)
-  retrieve = undefined
+  retrieve pk = do
+    Just (dbModel, dbRels) <-
+      getByIdWithRelsFromDB pk (Proxy :: Proxy (DBModel e))
+    let model = dbConvertFrom dbModel (Just dbRels)
+    let view = serialize model :: RetrieveActionView e
+    pure view
