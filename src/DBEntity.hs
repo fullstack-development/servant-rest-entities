@@ -7,11 +7,16 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE GADTs #-}
 
 module DBEntity where
 
+import Control.Monad.IO.Class (MonadIO)
 import Data.Proxy (Proxy(Proxy))
+
+class HasDbRun (actionMonad :: * -> *) (dbMonad :: * -> *) where
+  runDB :: (dbMonad a) -> actionMonad a
 
 class (DBEntity to) =>
       DBConvertable e to
@@ -24,6 +29,7 @@ class (DBEntity to) =>
   dbConvertFrom :: to -> Maybe (Relations e) -> e
 
 class DBEntity e where
-  save :: e -> IO e
-  getAllEntities :: Proxy e -> IO [e]
-  deleteFromDB :: Proxy e -> Int -> IO (Either String ())
+  type MonadDB e :: * -> *
+  save :: e -> MonadDB e e
+  getAllEntities :: Proxy e -> MonadDB e [e]
+  deleteFromDB :: Proxy e -> Int -> MonadDB e (Either String ())

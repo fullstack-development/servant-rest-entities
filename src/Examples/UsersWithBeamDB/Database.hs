@@ -1,6 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DeriveAnyClass #-}
@@ -101,11 +102,3 @@ demoBeamRestDb :: DatabaseSettings Postgres DemoBeamRestDb
 demoBeamRestDb =
   defaultDbSettings `withDbModification`
   dbModification {_user = modifyTable (const "users") tableModification}
-
-createPgConn =
-  Pg.connectPostgreSQL "postgresql://demo@localhost:5432/demorestwithbeam"
-
-runDB :: Pg a -> Connection -> IO a
-runDB query conn = runBeamPostgresDebug putStrLn conn query
-
-runDBWithSeparateConn query = createPgConn >>= runDB query

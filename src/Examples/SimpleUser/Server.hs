@@ -36,6 +36,7 @@ import WebActions.Update
 defVal = error "Value is undefined"
 
 instance DBEntity DB.User where
+  type MonadDB DB.User = Handler
   getAllEntities _ = pure DB.users
   save user = pure undefined
   deleteFromDB _ _ = pure undefined

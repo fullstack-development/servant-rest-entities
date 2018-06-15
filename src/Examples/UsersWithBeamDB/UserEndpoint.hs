@@ -23,9 +23,10 @@ import GHC.Generics
 import Network.Wai.Handler.Warp
 import Servant
 
-import DBEntity
+import qualified Examples.UsersWithBeamDB.DBEntity as DB
 import qualified Examples.UsersWithBeamDB.Database as DB
 import Examples.UsersWithBeamDB.Model
+import qualified Examples.UsersWithBeamDB.RunDB as DB
 import Examples.UsersWithBeamDB.ServerConfig
 import Model
 import Resource
@@ -36,23 +37,6 @@ import WebActions.Delete
 import WebActions.List
 import WebActions.Retrieve
 import WebActions.Update
-
-instance DBEntity DB.User where
-  getAllEntities _ = pure DB.users
-  save user = pure undefined
-  deleteFromDB _ _ = pure undefined
-
-instance DBConvertable User DB.User where
-  type DBModel User = DB.User
-  type Relations User = Auth
-  dbConvertTo user rels = undefined
-  dbConvertFrom DB.User {..} _ =
-    User
-      (Id $ unSerial _userId)
-      _userFirstName
-      _userLastName
-      _userCreatedAt
-      _userIsStaff
 
 data UserView = UserView
   { userViewId :: Int
@@ -132,13 +116,9 @@ instance HasRetrieveMethod User where
 
 instance Resource User where
   type Api User = CreateApi "users" (CreateActionBody User) (CreateActionView User) :<|> DeleteApi "users" :<|> UpdateApi "users" (UpdateActionBody User) (UpdateActionView User) :<|> ListApi "users" (ListActionView User) :<|> RetrieveApi "users" (RetrieveActionView User)
-  server ::
-       (Monad m, MonadIO m, MonadError ServantErr m)
-    => Proxy User
-    -> ServerT (Api User) m
+  server :: Proxy User -> ServerT (Api User) ServerConfigReader
   server proxyEntity = userServerApi
 
-userServerApi ::
-     (Monad m, MonadIO m, MonadError ServantErr m) => ServerT (Api User) m
+userServerApi :: ServerT (Api User) ServerConfigReader
 userServerApi =
   create :<|> delete (Proxy :: Proxy User) :<|> update :<|> list :<|> retrieve

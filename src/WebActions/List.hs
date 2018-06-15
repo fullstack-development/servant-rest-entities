@@ -16,14 +16,15 @@ import Serializables
 class ( Generic e
       , Serializable e (ListActionView e)
       , DBConvertable e (DBModel e)
+      , Monad (MonadDB (DBModel e))
       ) =>
       HasListMethod e
   | e -> e
   where
   data ListActionView e
-  list :: (Monad m, MonadIO m) => m [ListActionView e]
+  list :: MonadDB (DBModel e) [ListActionView e]
   list = do
-    dbModels <- liftIO $ getAllEntities (Proxy :: Proxy (DBModel e))
+    dbModels <- getAllEntities (Proxy :: Proxy (DBModel e))
     let entityModels = fmap (`dbConvertFrom` Nothing) dbModels
     let view = map serialize entityModels
     pure view

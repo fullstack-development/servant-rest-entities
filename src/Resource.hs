@@ -27,7 +27,4 @@ class (Generic e, DBConvertable e (DBModel e)) =>
   | e -> e
   where
   type Api e
-  server ::
-       (Monad m, MonadIO m, MonadError ServantErr m)
-    => Proxy e
-    -> ServerT (Api e) m
+  server :: Proxy e -> ServerT (Api e) (MonadDB (DBModel e))

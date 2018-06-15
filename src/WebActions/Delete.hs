@@ -15,14 +15,17 @@ import Servant
 import DBEntity
 import Serializables
 
-class (Generic e, DBConvertable e (DBModel e)) =>
+class ( Generic e
+      , DBConvertable e (DBModel e)
+      , MonadIO (MonadDB (DBModel e))
+      , MonadError ServantErr (MonadDB (DBModel e))
+      ) =>
       HasDeleteMethod e
   | e -> e
   where
-  delete ::
-       (Monad m, MonadIO m, MonadError ServantErr m) => Proxy e -> Int -> m ()
+  delete :: Proxy e -> Int -> MonadDB (DBModel e) ()
   delete proxyType entityId = do
-    result <- liftIO $ deleteFromDB (Proxy :: Proxy (DBModel e)) entityId
+    result <- deleteFromDB (Proxy :: Proxy (DBModel e)) entityId
     case result of
       Left err -> throwError $ err400 {errBody = BL.pack err}
       Right () -> pure ()
