@@ -22,4 +22,10 @@ class ( Generic e
   where
   data ListActionView e
   list :: Handler [ListActionView e]
-  list = undefined
+  list = do
+    dbEntities <-
+      liftIO
+        (getAllFromDBWithRels :: IO [(DBModel e, DBModel (ChildRelations e))])
+    return $ serialize . convertToModels <$> dbEntities
+    where
+      convertToModels (e, rels) = dbConvertFrom e (Just rels)

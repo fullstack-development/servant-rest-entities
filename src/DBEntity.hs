@@ -53,3 +53,5 @@ class DBEntity model dbmodel | dbmodel -> model where
     -> Proxy dbmodel
     -> IO (Maybe (dbmodel, DBModel (ChildRelations model)))
   deleteFromDB :: Proxy dbmodel -> Int -> IO (Either String ())
+  getAllFromDB :: IO [dbmodel]
+  getAllFromDBWithRels :: IO [(dbmodel, DBModel (ChildRelations model))]

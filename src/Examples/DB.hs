@@ -1,10 +1,13 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 
 module Examples.DB where
 
+import DBEntity
 import Data.Text
 import Data.Time
 import Data.Time.Clock
+import qualified Model
 
 newtype PrimaryKey a =
   PrimaryKey a
@@ -70,3 +73,17 @@ auths =
   ]
 
 def = error "Def db val"
+
+instance DBEntity Model.User User where
+  save user = pure undefined
+  deleteFromDB _ _ = pure undefined
+  getByIdFromDB _ = pure Nothing
+  getByIdWithRelsFromDB _ _ = undefined
+  getAllFromDB = pure []
+
+instance DBEntity Model.Auth Auth where
+  save user = pure undefined
+  deleteFromDB _ _ = pure undefined
+  getByIdFromDB _ = pure Nothing
+  getByIdWithRelsFromDB _ _ = undefined
+  getAllFromDB = pure []

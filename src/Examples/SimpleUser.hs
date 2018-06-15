@@ -36,16 +36,6 @@ type instance DBModel Auth = DB.Auth
 
 type instance DBModel User = DB.User
 
-instance DBEntity User DB.User where
-  save user = pure undefined
-  deleteFromDB _ _ = pure undefined
-  getByIdFromDB _ = pure Nothing
-
-instance DBEntity Auth DB.Auth where
-  save user = pure undefined
-  deleteFromDB _ _ = pure undefined
-  getByIdFromDB _ = pure Nothing
-
 instance DBConvertable Auth DB.Auth where
   type ChildRelations Auth = ()
   type ParentRelations Auth = User
