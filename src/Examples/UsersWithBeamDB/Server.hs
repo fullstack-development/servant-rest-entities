@@ -6,7 +6,7 @@
 {-# LANGUAGE TypeOperators #-}
 
 module Examples.UsersWithBeamDB.Server
-  ( runUserService
+  ( runUsersWithBeamExample
   ) where
 
 import Control.Monad.Trans.Reader
@@ -38,6 +38,6 @@ fullServer = server (Proxy :: Proxy User)
 serverApi :: Proxy (Api User)
 serverApi = Proxy
 
-runUserService :: IO ()
-runUserService =
+runUsersWithBeamExample :: IO ()
+runUsersWithBeamExample =
   putStrLn "Starting the web server..." >> run 8081 waiApplication

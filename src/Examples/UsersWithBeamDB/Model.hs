@@ -14,7 +14,7 @@ data User = User
   , userLastName :: T.Text
   , userCreatedAt :: LocalTime
   , userIsStaff :: Bool
-  -- , userAuth :: Auth
+  , userAuth :: Auth
   } deriving (Show, Eq, Generic)
 
 data Auth = Auth

@@ -93,7 +93,7 @@ deriving instance Eq (PrimaryKey AuthT Identity)
 
 data DemoBeamRestDb f = DemoBeamRestDb
   { _user :: f (TableEntity UserT)
-  , _author :: f (TableEntity AuthT)
+  , _auth :: f (TableEntity AuthT)
   } deriving (Generic)
 
 instance Database Postgres DemoBeamRestDb
