@@ -9,6 +9,7 @@ module WebActions.Retrieve where
 import Control.Monad
 import Control.Monad.Except
 import Control.Monad.IO.Class
+import Data.Void
 import GHC.Generics
 import Servant
 
@@ -31,14 +32,14 @@ class ( Generic e
   retrieve pk = do
     Just (dbModel, dbRels) <-
       getByIdWithRelsFromDB pk (Proxy :: Proxy (DBModel e))
-    isAccessAllowed <- checkAccessPermission (Proxy :: Proxy e)
+    isAccessAllowed <- checkAccessPermission Nothing (Proxy :: Proxy e)
     unless isAccessAllowed (throwError err403)
     let model = dbConvertFrom dbModel (Just dbRels)
-    isEntityAllowed <- checkEntityPermission model
+    isEntityAllowed <- checkEntityPermission Nothing model
     unless isEntityAllowed (throwError err403)
     let view = serialize model :: RetrieveActionView e
     pure view
-  checkAccessPermission :: AccessPermissionCheck e
-  checkAccessPermission _ = return True
-  checkEntityPermission :: EntityPermissionCheck e
-  checkEntityPermission _ = return True
+  checkAccessPermission :: AccessPermissionCheck e Void
+  checkAccessPermission _ _ = return True
+  checkEntityPermission :: EntityPermissionCheck e Void
+  checkEntityPermission _ _ = return True
