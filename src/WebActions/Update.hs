@@ -28,15 +28,7 @@ class ( Generic e
   data UpdateActionView e
   update ::
        Int -> UpdateActionBody e -> MonadDB (DBModel e) (UpdateActionView e)
-  update entityId body
--- <<<<<<< HEAD
---     model <- liftIO $ deserialize (Just entityId) body
---     let dbModel = dbConvertTo model Nothing
---     updatedDbModel <- save dbModel
---     let updatedModel = dbConvertFrom updatedDbModel Nothing
---     let view = serialize updatedModel
--- =======
-   = do
+  update entityId body = do
     modelUpdates <- liftIO $ deserialize (Just entityId) body -- Get updates
     -- Get entity with all her relations
     Just (dbModel, dbModelRels) <-
@@ -49,5 +41,4 @@ class ( Generic e
     updatedDbModel <- save dbModel
     let updatedModel = dbConvertFrom updatedDbModel (Just dbRels)
     let view = serialize updatedModel :: UpdateActionView e
--- >>>>>>> 95923502a686085ff86057fcbe4f79e8839f7405
     pure view

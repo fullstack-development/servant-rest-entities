@@ -1,10 +1,6 @@
-{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE StandaloneDeriving #-}
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE RecordWildCards #-}
@@ -28,13 +24,11 @@ import Examples.UsersWithBeamDB.ServerConfig
 import Model
 
 getUsers :: Pg [DB.User]
-getUsers = runSelectReturningList . select . all_ $ (DB._user DB.demoBeamRestDb)
+getUsers = runSelectReturningList . select . all_ $ DB._user DB.demoBeamRestDb
 
 instance DBEntity User DB.User where
   type MonadDB DB.User = ServerConfigReader
-  getAllFromDB = do
-    users <- runDB getUsers
-    pure users
+  getAllFromDB = runDB getUsers
   save user = pure undefined
   deleteFromDB _ _ = pure undefined
   getByIdFromDB _ = pure Nothing

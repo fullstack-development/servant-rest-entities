@@ -22,7 +22,7 @@ newtype PrimaryKey a =
   PrimaryKey a
   deriving (Show, Eq)
 
-data ForeignKey a =
+newtype ForeignKey a =
   ForeignKey a
   deriving (Show, Eq)
 
