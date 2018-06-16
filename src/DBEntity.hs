@@ -16,7 +16,7 @@ import Control.Monad.IO.Class (MonadIO)
 import Data.Proxy (Proxy(Proxy))
 
 class HasDbRun (actionMonad :: * -> *) (dbMonad :: * -> *) where
-  runDB :: (dbMonad a) -> actionMonad a
+  runDB :: dbMonad a -> actionMonad a
 
 type family DBModel e
 
