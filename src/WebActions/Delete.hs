@@ -13,6 +13,7 @@ import GHC.Generics
 import Servant
 
 import DBEntity
+import Permissions
 import Serializables
 
 class ( Generic e
@@ -25,7 +26,11 @@ class ( Generic e
   where
   delete :: Proxy e -> Int -> MonadDB (DBModel e) ()
   delete proxyType entityId = do
+    isAccessAllowed <- checkAccessPermission (Proxy :: Proxy e)
+    unless isAccessAllowed (throwError err401)
     result <- deleteFromDB (Proxy :: Proxy (DBModel e)) entityId
     case result of
       Left err -> throwError $ err400 {errBody = BL.pack err}
       Right () -> pure ()
+  checkAccessPermission :: AccessPermissionCheck e
+  checkAccessPermission _ = return True
