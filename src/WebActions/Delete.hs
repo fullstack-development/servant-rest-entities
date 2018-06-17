@@ -13,17 +13,18 @@ import GHC.Generics
 import Servant
 
 import DBEntity
+import Resource
 import Serializables
 
 class ( Generic e
       , DBConvertable e (DBModel e)
-      , MonadIO (MonadDB (DBModel e))
-      , MonadError ServantErr (MonadDB (DBModel e))
+      , MonadIO (MonadWeb e)
+      , MonadError ServantErr (MonadWeb e)
       ) =>
       HasDeleteMethod e
   | e -> e
   where
-  delete :: Proxy e -> Int -> MonadDB (DBModel e) ()
+  delete :: Proxy e -> Int -> MonadWeb e ()
   delete proxyType entityId = do
     result <- deleteFromDB (Proxy :: Proxy (DBModel e)) entityId
     case result of

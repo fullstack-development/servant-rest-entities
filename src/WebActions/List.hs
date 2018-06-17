@@ -11,19 +11,20 @@ import GHC.Generics
 import Servant
 
 import DBEntity
+import Resource
 import Serializables
 
 class ( Generic e
       , Serializable e (ListActionView e)
       , DBConvertable e (DBModel e)
-      , Monad (MonadDB (DBModel e))
-      , MonadIO (MonadDB (DBModel e))
+      , Monad (MonadWeb e)
+      , MonadIO (MonadWeb e)
       ) =>
       HasListMethod e
   | e -> e
   where
   data ListActionView e
-  list :: MonadDB (DBModel e) [ListActionView e]
+  list :: MonadWeb e [ListActionView e]
   list = do
     dbEntities <- getAllFromDBWithRels
     return $ serialize . convertToModels <$> dbEntities

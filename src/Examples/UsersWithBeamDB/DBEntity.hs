@@ -3,6 +3,7 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE RecordWildCards #-}
 
 module Examples.UsersWithBeamDB.DBEntity where
@@ -18,10 +19,12 @@ import qualified Database.PostgreSQL.Simple as Pg
 
 import DBEntity
 import qualified Examples.UsersWithBeamDB.Database as DB
-import Examples.UsersWithBeamDB.Model
+import qualified Examples.UsersWithBeamDB.Model as Model
+import Examples.UsersWithBeamDB.Resources
 import Examples.UsersWithBeamDB.RunDB
 import Examples.UsersWithBeamDB.ServerConfig
 import Model
+import Resource
 
 getUsers :: Pg [DB.User]
 getUsers = runSelectReturningList . select . all_ . DB._user $ DB.demoBeamRestDb
@@ -35,23 +38,22 @@ selectUsersWithAuth =
     guard_ (DB._userAuthId user `references_` auth)
     pure (user, auth)
 
-instance DBEntity User DB.User where
-  type MonadDB DB.User = ServerConfigReader
-  getAllFromDB = runDB getUsers
+instance DBEntity Model.User DB.User where
+  getAllFromDB = undefined -- runDB getUsers
   save user = pure undefined
-  deleteFromDB _ _ = pure undefined
-  getByIdFromDB _ = pure Nothing
+  deleteFromDB _ _ = undefined
+  getByIdFromDB _ = undefined
   getByIdWithRelsFromDB _ _ = undefined
-  getAllFromDBWithRels = runDB selectUsersWithAuth
+  getAllFromDBWithRels = undefined -- runDB selectUsersWithAuth
 
-type instance DBModel User = DB.User
+type instance DBModel Model.User = DB.User
 
-instance DBConvertable User DB.User where
-  type ChildRelations User = Auth
-  type ParentRelations User = ()
+instance DBConvertable Model.User DB.User where
+  type ChildRelations Model.User = Model.Auth
+  type ParentRelations Model.User = ()
   dbConvertTo user rels = undefined
   dbConvertFrom DB.User {..} (Just auth) =
-    User
+    Model.User
       (Id $ unSerial _userId)
       _userFirstName
       _userLastName
@@ -59,20 +61,19 @@ instance DBConvertable User DB.User where
       _userIsStaff
       (dbConvertFrom auth Nothing)
 
-type instance DBModel Auth = DB.Auth
+type instance DBModel Model.Auth = DB.Auth
 
-instance DBEntity Auth DB.Auth where
-  type MonadDB DB.Auth = ServerConfigReader
+instance DBEntity Model.Auth DB.Auth where
   getAllFromDB = undefined
-  save user = pure undefined
-  deleteFromDB _ _ = pure undefined
-  getByIdFromDB _ = pure Nothing
+  save user = undefined
+  deleteFromDB _ _ = undefined
+  getByIdFromDB _ = undefined
   getByIdWithRelsFromDB _ _ = undefined
   getAllFromDBWithRels = undefined
 
-instance DBConvertable Auth DB.Auth where
-  type ChildRelations Auth = ()
-  type ParentRelations Auth = User
+instance DBConvertable Model.Auth DB.Auth where
+  type ChildRelations Model.Auth = ()
+  type ParentRelations Model.Auth = Model.User
   dbConvertTo user rels = undefined
   dbConvertFrom DB.Auth {..} _ =
-    Auth (Id $ unSerial _authId) _authPassword _authCreatedAt
+    Model.Auth (Id $ unSerial _authId) _authPassword _authCreatedAt

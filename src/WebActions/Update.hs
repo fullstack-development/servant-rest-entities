@@ -12,22 +12,22 @@ import Servant
 import Control.Monad.IO.Class
 import DBEntity
 import Data.Proxy
+import Resource
 import Serializables
 
 class ( Generic e
       , Deserializable e (UpdateActionBody e)
       , Serializable e (UpdateActionView e)
       , DBConvertable e (DBModel e)
-      , Monad (MonadDB (DBModel e))
-      , MonadIO (MonadDB (DBModel e))
+      , Monad (MonadWeb e)
+      , MonadIO (MonadWeb e)
       ) =>
       HasUpdateMethod e
   | e -> e
   where
   data UpdateActionBody e
   data UpdateActionView e
-  update ::
-       Int -> UpdateActionBody e -> MonadDB (DBModel e) (UpdateActionView e)
+  update :: Int -> UpdateActionBody e -> MonadWeb e (UpdateActionView e)
   update entityId body = do
     modelUpdates <- liftIO $ deserialize (Just entityId) body -- Get updates
     -- Get entity with all her relations

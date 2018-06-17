@@ -1,28 +1,30 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DeriveAnyClass #-}
 
-module Examples.SimpleUser.Server
-  ( runUserService
-  ) where
+module Examples.UsersWithBeamDB.Resources where
 
+import Control.Monad.Except
+import Control.Monad.IO.Class
 import qualified Data.Aeson as Aeson
 import Data.Maybe
 import Data.Proxy
 import qualified Data.Text as T
 import Data.Time
+import Database.Beam.Backend.SQL.Types (unSerial)
 import GHC.Generics
 import Network.Wai.Handler.Warp
 import Servant
 
-import DBEntity
-import qualified Examples.SimpleUser.DB as DB
-import Examples.SimpleUser.Model
+import Examples.UsersWithBeamDB.Model
+import Examples.UsersWithBeamDB.ServerConfig
 import Model
 import Resource
 import Routing
@@ -35,22 +37,16 @@ import WebActions.Update
 
 instance Resource User where
   type Api User = CreateApi "users" (CreateActionBody User) (CreateActionView User) :<|> DeleteApi "users" :<|> UpdateApi "users" (UpdateActionBody User) (UpdateActionView User) :<|> ListApi "users" (ListActionView User) :<|> RetrieveApi "users" (RetrieveActionView User)
-  type MonadWeb User = Handler
-  server proxyEntity =
-    create :<|> delete proxyEntity :<|> update :<|> list :<|> retrieve
+  type MonadWeb User = ServerConfigReader
+  server :: Proxy User -> ServerT (Api User) ServerConfigReader
+  server proxyEntity = userServerApi
 
 instance Resource Auth where
   type Api Auth = UpdateApi "auth" (UpdateActionBody Auth) (UpdateActionView Auth)
-  type MonadWeb Auth = Handler
+  type MonadWeb Auth = ServerConfigReader
+  server :: Proxy Auth -> ServerT (Api Auth) ServerConfigReader
   server proxyEntity = update
 
-fullServer = server (Proxy :: Proxy User)
-
-serverApi :: Proxy (Api User)
-serverApi = Proxy
-
-serverApp :: Application
-serverApp = serve serverApi fullServer
-
-runUserService :: IO ()
-runUserService = run 8081 serverApp
+userServerApi :: ServerT (Api User) ServerConfigReader
+userServerApi =
+  create :<|> delete (Proxy :: Proxy User) :<|> update :<|> list :<|> retrieve

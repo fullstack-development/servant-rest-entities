@@ -17,14 +17,12 @@ import Control.Monad.IO.Class
 import GHC.Generics
 import Servant
 
-import DBEntity
-import Model
 import Routing
-import Serializables
 
-class (Generic e, DBConvertable e (DBModel e)) =>
+class (Generic e) =>
       Resource e
   | e -> e
   where
   type Api e
-  server :: Proxy e -> ServerT (Api e) (MonadDB (DBModel e))
+  type MonadWeb e :: * -> *
+  server :: Proxy e -> ServerT (Api e) (MonadWeb e)

@@ -11,6 +11,7 @@ import Servant
 
 import DBEntity
 import qualified Examples.SimpleUser.Model as Model
+import Examples.SimpleUser.Server
 
 def = error "Default does not exist"
 
@@ -80,19 +81,17 @@ auths =
   ]
 
 instance DBEntity Model.User User where
-  type MonadDB User = Handler
-  save user = pure undefined
-  deleteFromDB _ _ = pure undefined
-  getByIdFromDB _ = pure Nothing
+  save user = undefined
+  deleteFromDB _ _ = undefined
+  getByIdFromDB _ = undefined
   getByIdWithRelsFromDB _ _ = undefined
   getAllFromDBWithRels = undefined
-  getAllFromDB = pure []
+  getAllFromDB = undefined
 
 instance DBEntity Model.Auth Auth where
-  type MonadDB Auth = Handler
-  save user = pure undefined
-  deleteFromDB _ _ = pure undefined
-  getByIdFromDB _ = pure Nothing
+  save user = undefined
+  deleteFromDB _ _ = undefined
+  getByIdFromDB _ = undefined
   getByIdWithRelsFromDB _ _ = undefined
   getAllFromDBWithRels = undefined
-  getAllFromDB = pure []
+  getAllFromDB = undefined

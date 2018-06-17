@@ -11,18 +11,19 @@ import GHC.Generics
 import Servant
 
 import DBEntity
+import Resource
 import Serializables
 
 class ( Generic e
       , Serializable e (RetrieveActionView e)
       , DBConvertable e (DBModel e)
-      , Monad (MonadDB (DBModel e))
+      , Monad (MonadWeb e)
       ) =>
       HasRetrieveMethod e
   | e -> e
   where
   data RetrieveActionView e
-  retrieve :: Int -> MonadDB (DBModel e) (RetrieveActionView e)
+  retrieve :: Int -> MonadWeb e (RetrieveActionView e)
   retrieve pk = do
     Just (dbModel, dbRels) <-
       getByIdWithRelsFromDB pk (Proxy :: Proxy (DBModel e))

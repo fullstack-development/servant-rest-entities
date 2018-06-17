@@ -1,33 +1,28 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE DataKinds #-}
-{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DeriveAnyClass #-}
 
-module Examples.UsersWithBeamDB.UserEndpoint where
+module Examples.SimpleUser.Endpoints
+  ( runUserService
+  ) where
 
-import Control.Monad.Except
-import Control.Monad.IO.Class
 import qualified Data.Aeson as Aeson
 import Data.Maybe
 import Data.Proxy
 import qualified Data.Text as T
 import Data.Time
-import Database.Beam.Backend.SQL.Types (unSerial)
 import GHC.Generics
 import Network.Wai.Handler.Warp
 import Servant
 
-import qualified Examples.UsersWithBeamDB.DBEntity as DB
-import qualified Examples.UsersWithBeamDB.Database as DB
-import Examples.UsersWithBeamDB.Model
-import qualified Examples.UsersWithBeamDB.RunDB as DB
-import Examples.UsersWithBeamDB.ServerConfig
+import DBEntity
+import qualified Examples.SimpleUser.DB as DB
+import Examples.SimpleUser.Model
 import Model
 import Resource
 import Routing
@@ -38,10 +33,62 @@ import WebActions.List
 import WebActions.Retrieve
 import WebActions.Update
 
+type instance DBModel Auth = DB.Auth
+
+type instance DBModel User = DB.User
+
+instance DBConvertable Auth DB.Auth where
+  type ChildRelations Auth = ()
+  type ParentRelations Auth = User
+  dbConvertTo Auth {..} (Just user) = (dbAuth, ())
+    where
+      dbAuth =
+        DB.Auth
+        { DB.authId =
+            if isIdEmpty authId
+              then DB.def
+              else DB.PrimaryKey (fromId authId)
+        , DB.authPassword = DB.Column authPassword
+        , DB.authCreatedAt = DB.Column authCreatedAt
+        , DB.authUserId = DB.ForeignKey (DB.PrimaryKey (fromId $ userId user))
+        }
+  dbConvertFrom DB.Auth {..} _ =
+    Auth
+    { authId = Id $ DB.fromPK authId
+    , authPassword = DB.fromColumn authPassword
+    , authCreatedAt = DB.fromColumn authCreatedAt
+    }
+
+instance DBConvertable User DB.User where
+  type ChildRelations User = Auth
+  type ParentRelations User = ()
+  dbConvertTo user@User {..} _ = (dbUser, dbAuth)
+    where
+      (dbAuth, rels) = dbConvertTo userAuth (Just user)
+      dbUser =
+        DB.User
+        { userId = DB.PrimaryKey (fromId userId)
+        , userFirstName = DB.Column userFirstName
+        , userLastName = DB.Column userLastName
+        , userCreatedAt = DB.Column userCreatedAt
+        , userIsStaff = DB.Column userIsStaff
+        }
+  dbConvertFrom DB.User {..} (Just auth) =
+    User
+    { userId = Id $ DB.fromPK userId
+    , userFirstName = DB.fromColumn userFirstName
+    , userLastName = DB.fromColumn userLastName
+    , userIsStaff = DB.fromColumn userIsStaff
+    , userCreatedAt = DB.fromColumn userCreatedAt
+    , userAuth = dbConvertFrom auth Nothing
+    }
+  dbConvertFrom _ Nothing =
+    error "You should pass all relations to user db converter."
+
 data AuthView = AuthView
   { authViewId :: Int
   , authViewPassword :: T.Text
-  , authViewCreatedAt :: LocalTime
+  , authViewCreatedAt :: UTCTime
   } deriving (Generic, Aeson.ToJSON)
 
 data AuthBody = AuthBody
@@ -53,7 +100,6 @@ data UserView = UserView
   , userViewFirstName :: T.Text
   , userViewLastName :: T.Text
   , userViewIsStaff :: Bool
-  , userViewAuth :: AuthView
   } deriving (Generic, Aeson.ToJSON)
 
 data UserBody = UserBody
@@ -62,6 +108,28 @@ data UserBody = UserBody
   , userBodyIsStaff :: Bool
   , userBodyPassword :: T.Text
   } deriving (Generic, Aeson.FromJSON)
+
+deserializeUserBody Nothing UserBody {..} = do
+  time <- getCurrentTime
+  return
+    User
+    { userId = Empty
+    , userAuth =
+        Auth
+        {authId = Empty, authPassword = userBodyPassword, authCreatedAt = time}
+    , userFirstName = userBodyFirstName
+    , userLastName = userBodyLastName
+    , userIsStaff = userBodyIsStaff
+    , userCreatedAt = time
+    }
+
+serializeUserBody User {..} =
+  UserView
+  { userViewId = fromId userId
+  , userViewFirstName = userFirstName
+  , userViewLastName = userLastName
+  , userViewIsStaff = userIsStaff
+  }
 
 serializeAuthView Auth {..} =
   AuthView
@@ -73,37 +141,7 @@ serializeAuthView Auth {..} =
 deserializeAuthBody Nothing AuthBody {..} = do
   time <- getCurrentTime
   pure
-    Auth
-    { authId = Empty
-    , authPassword = authBodyPassword
-    , authCreatedAt = utcToLocalTime (minutesToTimeZone 0) time
-    }
-
-deserializeUserBody Nothing UserBody {..} = do
-  time <- getCurrentTime
-  pure
-    User
-    { userId = Empty
-    , userAuth =
-        Auth
-        { authId = Empty
-        , authPassword = userBodyPassword
-        , authCreatedAt = utcToLocalTime (minutesToTimeZone 0) time
-        }
-    , userFirstName = userBodyFirstName
-    , userLastName = userBodyLastName
-    , userIsStaff = userBodyIsStaff
-    , userCreatedAt = utcToLocalTime (minutesToTimeZone 0) time
-    }
-
-serializeUserView User {..} =
-  UserView
-  { userViewId = fromId userId
-  , userViewFirstName = userFirstName
-  , userViewLastName = userLastName
-  , userViewIsStaff = userIsStaff
-  , userViewAuth = serializeAuthView userAuth
-  }
+    Auth {authId = Empty, authPassword = authBodyPassword, authCreatedAt = time}
 
 instance Serializable Auth (UpdateActionView Auth) where
   serialize auth = UpdateAuthView $ serializeAuthView auth
@@ -112,22 +150,22 @@ instance Deserializable Auth (UpdateActionBody Auth) where
   deserialize pk (UpdateAuthBody authBody) = deserializeAuthBody pk authBody
 
 instance Serializable User (CreateActionView User) where
-  serialize user = CreateUserView $ serializeUserView user
+  serialize user = CreateUserView $ serializeUserBody user
 
 instance Deserializable User (CreateActionBody User) where
   deserialize pk (CreateUserBody userBody) = deserializeUserBody pk userBody
 
 instance Serializable User (UpdateActionView User) where
-  serialize user = UpdateUserView $ serializeUserView user
+  serialize user = UpdateUserView $ serializeUserBody user
 
 instance Deserializable User (UpdateActionBody User) where
   deserialize pk (UpdateUserBody userBody) = deserializeUserBody pk userBody
 
 instance Serializable User (ListActionView User) where
-  serialize user = ListUserView $ serializeUserView user
+  serialize user = ListUserView $ serializeUserBody user
 
 instance Serializable User (RetrieveActionView User) where
-  serialize user = RetrieveUserView $ serializeUserView user
+  serialize user = RetrieveUserView $ serializeUserBody user
 
 instance HasUpdateMethod Auth where
   data UpdateActionBody Auth = UpdateAuthBody AuthBody
@@ -156,19 +194,3 @@ instance HasListMethod User where
 instance HasRetrieveMethod User where
   data RetrieveActionView User = RetrieveUserView UserView
                              deriving (Generic, Aeson.ToJSON)
-
-instance Resource User where
-  type Api User = CreateApi "users" (CreateActionBody User) (CreateActionView User) :<|> DeleteApi "users" :<|> UpdateApi "users" (UpdateActionBody User) (UpdateActionView User) :<|> ListApi "users" (ListActionView User) :<|> RetrieveApi "users" (RetrieveActionView User)
-  type MonadWeb User = ServerConfigReader
-  server :: Proxy User -> ServerT (Api User) ServerConfigReader
-  server proxyEntity = userServerApi
-
-instance Resource Auth where
-  type Api Auth = UpdateApi "auth" (UpdateActionBody Auth) (UpdateActionView Auth)
-  type MonadWeb Auth = ServerConfigReader
-  server :: Proxy Auth -> ServerT (Api Auth) ServerConfigReader
-  server proxyEntity = update
-
-userServerApi :: ServerT (Api User) ServerConfigReader
-userServerApi =
-  create :<|> delete (Proxy :: Proxy User) :<|> update :<|> list :<|> retrieve

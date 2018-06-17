@@ -15,6 +15,8 @@ module DBEntity where
 import Control.Monad.IO.Class (MonadIO)
 import Data.Proxy (Proxy(Proxy))
 
+import Resource
+
 class HasDbRun (actionMonad :: * -> *) (dbMonad :: * -> *) where
   runDB :: dbMonad a -> actionMonad a
 
@@ -50,21 +52,17 @@ class (DBEntity e to) =>
        e -> Maybe (ParentRelations e) -> (to, DBModel (ChildRelations e))
   dbConvertFrom :: to -> Maybe (DBModel (ChildRelations e)) -> e
 
--- class DBEntity e where
---   type MonadDB e :: * -> *
---   save :: e -> MonadDB e e
---   getAllEntities :: Proxy e -> MonadDB e [e]
---   deleteFromDB :: Proxy e -> Int -> MonadDB e (Either String ())
--- =======
-class DBEntity model dbmodel | dbmodel -> model where
-  type MonadDB dbmodel :: * -> *
-  save :: dbmodel -> MonadDB dbmodel dbmodel
-  getByIdFromDB :: Int -> MonadDB dbmodel (Maybe dbmodel)
+class (Resource model) =>
+      DBEntity model dbmodel
+  | dbmodel -> model
+  where
+  save :: dbmodel -> MonadWeb model dbmodel
+  getByIdFromDB :: Int -> MonadWeb model (Maybe dbmodel)
   getByIdWithRelsFromDB ::
        Int
     -> Proxy dbmodel
-    -> MonadDB dbmodel (Maybe (dbmodel, DBModel (ChildRelations model)))
-  deleteFromDB :: Proxy dbmodel -> Int -> MonadDB dbmodel (Either String ())
-  getAllFromDB :: MonadDB dbmodel [dbmodel]
+    -> MonadWeb model (Maybe (dbmodel, DBModel (ChildRelations model)))
+  deleteFromDB :: Proxy dbmodel -> Int -> MonadWeb model (Either String ())
+  getAllFromDB :: MonadWeb model [dbmodel]
   getAllFromDBWithRels ::
-       MonadDB dbmodel [(dbmodel, DBModel (ChildRelations model))]
+       MonadWeb model [(dbmodel, DBModel (ChildRelations model))]
