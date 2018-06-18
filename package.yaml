@@ -31,6 +31,9 @@ dependencies:
 - servant-server
 - aeson
 - warp
+- servant-auth
+- servant-auth-server
+- cookie
 
 - beam-core
 - beam-postgres

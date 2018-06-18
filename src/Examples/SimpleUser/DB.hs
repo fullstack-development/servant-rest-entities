@@ -4,7 +4,8 @@
 
 module Examples.SimpleUser.DB where
 
-import Data.Text
+import Data.List
+import Data.Text hiding (find)
 import Data.Time
 import Data.Time.Clock
 import Servant
@@ -17,6 +18,8 @@ def = error "Default does not exist"
 fromColumn (Column v) = v
 
 fromPK (PrimaryKey pk) = pk
+
+fromFK (ForeignKey k) = k
 
 newtype PrimaryKey a =
   PrimaryKey a
@@ -79,17 +82,34 @@ auths =
     }
   ]
 
+type instance DBModel Model.Auth = Auth
+
+type instance DBModel Model.User = User
+
 instance DBEntity Model.User User where
   type MonadDB User = Handler
+  type ChildRelations Model.User = Model.Auth
+  type ParentRelations Model.User = ()
   save user = pure undefined
   deleteFromDB _ _ = pure undefined
-  getByIdFromDB _ = pure Nothing
-  getByIdWithRelsFromDB _ _ = undefined
+  getByIdFromDB pk = pure Nothing
+  getByIdWithRelsFromDB pk _ = do
+    let user = find (\u -> fromPK (userId u) == pk) users
+    let auth =
+          maybe
+            Nothing
+            (\u -> find (\a -> fromFK (authUserId a) == userId u) auths)
+            user
+    case (user, auth) of
+      (Just u, Just a) -> return $ Just (u, a)
+      _ -> return Nothing
   getAllFromDBWithRels = undefined
   getAllFromDB = pure []
 
 instance DBEntity Model.Auth Auth where
   type MonadDB Auth = Handler
+  type ChildRelations Model.Auth = ()
+  type ParentRelations Model.Auth = Model.User
   save user = pure undefined
   deleteFromDB _ _ = pure undefined
   getByIdFromDB _ = pure Nothing

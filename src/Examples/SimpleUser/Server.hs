@@ -6,22 +6,27 @@
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DeriveAnyClass #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module Examples.SimpleUser.Server
   ( runUserService
   ) where
 
+import Control.Monad.IO.Class
 import qualified Data.Aeson as Aeson
 import Data.Maybe
 import Data.Proxy
 import qualified Data.Text as T
 import Data.Time
+import Data.Void
 import GHC.Generics
 import Network.Wai.Handler.Warp
 import Servant
+import qualified Servant.Auth.Server as ServantAuth
 
 import DBEntity
 import qualified Examples.SimpleUser.DB as DB
+import Examples.SimpleUser.DBBridge
 import Examples.SimpleUser.Model
 import Model
 import Resource
@@ -32,58 +37,6 @@ import WebActions.Delete
 import WebActions.List
 import WebActions.Retrieve
 import WebActions.Update
-
-type instance DBModel Auth = DB.Auth
-
-type instance DBModel User = DB.User
-
-instance DBConvertable Auth DB.Auth where
-  type ChildRelations Auth = ()
-  type ParentRelations Auth = User
-  dbConvertTo Auth {..} (Just user) = (dbAuth, ())
-    where
-      dbAuth =
-        DB.Auth
-        { DB.authId =
-            if isIdEmpty authId
-              then DB.def
-              else DB.PrimaryKey (fromId authId)
-        , DB.authPassword = DB.Column authPassword
-        , DB.authCreatedAt = DB.Column authCreatedAt
-        , DB.authUserId = DB.ForeignKey (DB.PrimaryKey (fromId $ userId user))
-        }
-  dbConvertFrom DB.Auth {..} _ =
-    Auth
-    { authId = Id $ DB.fromPK authId
-    , authPassword = DB.fromColumn authPassword
-    , authCreatedAt = DB.fromColumn authCreatedAt
-    }
-
-instance DBConvertable User DB.User where
-  type ChildRelations User = Auth
-  type ParentRelations User = ()
-  dbConvertTo user@User {..} _ = (dbUser, dbAuth)
-    where
-      (dbAuth, rels) = dbConvertTo userAuth (Just user)
-      dbUser =
-        DB.User
-        { userId = DB.PrimaryKey (fromId userId)
-        , userFirstName = DB.Column userFirstName
-        , userLastName = DB.Column userLastName
-        , userCreatedAt = DB.Column userCreatedAt
-        , userIsStaff = DB.Column userIsStaff
-        }
-  dbConvertFrom DB.User {..} (Just auth) =
-    User
-    { userId = Id $ DB.fromPK userId
-    , userFirstName = DB.fromColumn userFirstName
-    , userLastName = DB.fromColumn userLastName
-    , userIsStaff = DB.fromColumn userIsStaff
-    , userCreatedAt = DB.fromColumn userCreatedAt
-    , userAuth = dbConvertFrom auth Nothing
-    }
-  dbConvertFrom _ Nothing =
-    error "You should pass all relations to user db converter."
 
 data UserView = UserView
   { userViewId :: Int
@@ -157,7 +110,7 @@ instance HasListMethod User where
   data ListActionView User = ListUserView UserView
                          deriving (Generic, Aeson.ToJSON)
 
-instance HasRetrieveMethod User where
+instance HasRetrieveMethod User Void where
   data RetrieveActionView User = RetrieveUserView UserView
                              deriving (Generic, Aeson.ToJSON)
 
@@ -166,13 +119,56 @@ instance Resource User where
   server proxyEntity =
     create :<|> delete proxyEntity :<|> update :<|> list :<|> retrieve
 
-fullServer = server (Proxy :: Proxy User)
+fullApi cs jwts = server (Proxy :: Proxy User) :<|> login cs jwts
 
-serverApi :: Proxy (Api User)
-serverApi = Proxy
+type LoginAPI
+   = "login" :> ReqBody '[ JSON] LoginBody :> PostNoContent '[ JSON] LoginResponse
 
-serverApp :: Application
-serverApp = serve serverApi fullServer
+type LoginResponse
+   = Headers '[ Header "Set-Cookie" ServantAuth.SetCookie, Header "Set-Cookie" ServantAuth.SetCookie] NoContent
+
+type FullApi = Api User :<|> LoginAPI
+
+routes :: Proxy FullApi
+routes = Proxy
+
+mkApp jwtSecret =
+  let cookieCfg = ServantAuth.defaultCookieSettings
+      jwtCfg = ServantAuth.defaultJWTSettings jwtSecret
+      cfg = cookieCfg :. jwtCfg :. EmptyContext
+  in serveWithContext routes cfg (fullApi cookieCfg jwtCfg)
 
 runUserService :: IO ()
-runUserService = run 8081 serverApp
+runUserService = do
+  jwtSecret <- ServantAuth.generateKey
+  let app = mkApp jwtSecret
+  run 8081 app
+
+instance ServantAuth.ToJWT User
+
+instance ServantAuth.FromJWT User
+
+data LoginBody = LoginBody
+  { username :: String
+  , password :: String
+  } deriving (Generic, Aeson.FromJSON, Show)
+
+login ::
+     ServantAuth.CookieSettings
+  -> ServantAuth.JWTSettings
+  -> LoginBody
+  -> Handler LoginResponse
+login cookieSettings jwtSettings (LoginBody name password) = do
+  dbUser <- getByIdWithRelsFromDB 1 (Proxy :: Proxy DB.User)
+  let user =
+        maybe
+          Nothing
+          (\(model, rels) -> Just $ dbConvertFrom model (Just rels))
+          dbUser
+  case user of
+    Nothing -> throwError err404
+    Just usr -> do
+      mApplyCookies <-
+        liftIO (ServantAuth.acceptLogin cookieSettings jwtSettings usr)
+      let resp = fromJust mApplyCookies NoContent
+      return resp

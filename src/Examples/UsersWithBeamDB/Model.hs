@@ -1,7 +1,9 @@
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DeriveAnyClass #-}
 
 module Examples.UsersWithBeamDB.Model where
 
+import Data.Aeson
 import qualified Data.Text as T
 import Data.Time.LocalTime
 import GHC.Generics
@@ -15,7 +17,7 @@ data User = User
   , userCreatedAt :: LocalTime
   , userIsStaff :: Bool
   -- , userAuth :: Auth
-  } deriving (Show, Eq, Generic)
+  } deriving (Show, Eq, Generic, ToJSON, FromJSON)
 
 data Auth = Auth
   { authId :: Id Int

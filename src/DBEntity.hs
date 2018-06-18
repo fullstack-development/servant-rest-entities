@@ -44,8 +44,6 @@ class (DBEntity e to) =>
   | e -> to
   , to -> e
   where
-  type ChildRelations e
-  type ParentRelations e
   dbConvertTo ::
        e -> Maybe (ParentRelations e) -> (to, DBModel (ChildRelations e))
   dbConvertFrom :: to -> Maybe (DBModel (ChildRelations e)) -> e
@@ -57,6 +55,8 @@ class (DBEntity e to) =>
 --   deleteFromDB :: Proxy e -> Int -> MonadDB e (Either String ())
 -- =======
 class DBEntity model dbmodel | dbmodel -> model where
+  type ChildRelations model
+  type ParentRelations model
   type MonadDB dbmodel :: * -> *
   save :: dbmodel -> MonadDB dbmodel dbmodel
   getByIdFromDB :: Int -> MonadDB dbmodel (Maybe dbmodel)

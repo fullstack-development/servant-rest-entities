@@ -14,10 +14,13 @@ import Control.Monad.Reader
 import DBEntity
 import Database.Beam.Postgres (Pg)
 import Servant
+import Servant.Auth.Server
 
 data ServerConfig = ServerConfig
   { port :: Int
   , withDbConn :: forall a. Pg a -> IO a
+  , jwtSettings :: JWTSettings
+  , cookieSettings :: CookieSettings
   }
 
 newtype ServerConfigReader a = ServerConfigReader

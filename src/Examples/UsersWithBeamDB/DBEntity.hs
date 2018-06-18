@@ -28,6 +28,8 @@ getUsers = runSelectReturningList . select . all_ $ DB._user DB.demoBeamRestDb
 
 instance DBEntity User DB.User where
   type MonadDB DB.User = ServerConfigReader
+  type ChildRelations User = Auth
+  type ParentRelations User = ()
   getAllFromDB = runDB getUsers
   save user = pure undefined
   deleteFromDB _ _ = pure undefined
@@ -38,8 +40,6 @@ instance DBEntity User DB.User where
 type instance DBModel User = DB.User
 
 instance DBConvertable User DB.User where
-  type ChildRelations User = Auth
-  type ParentRelations User = ()
   dbConvertTo user rels = undefined
   dbConvertFrom DB.User {..} _ =
     User
