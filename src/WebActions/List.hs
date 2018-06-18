@@ -21,6 +21,7 @@ class ( Generic e
       , DBConvertable e (DBModel e)
       , Monad (MonadDB (DBModel e))
       , MonadError ServantErr (MonadDB (DBModel e))
+      , MonadIO (MonadDB (DBModel e))
       ) =>
       HasListMethod e
   | e -> e

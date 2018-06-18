@@ -16,11 +16,11 @@ data User = User
   , userLastName :: T.Text
   , userCreatedAt :: LocalTime
   , userIsStaff :: Bool
-  -- , userAuth :: Auth
-  } deriving (Show, Eq, Generic, ToJSON, FromJSON)
+  , userAuth :: Auth
+  } deriving (Show, Eq, Generic, FromJSON, ToJSON)
 
 data Auth = Auth
   { authId :: Id Int
   , authPassword :: T.Text
   , authCreatedAt :: LocalTime
-  } deriving (Show, Eq, Generic)
+  } deriving (Show, Eq, Generic, FromJSON, ToJSON)

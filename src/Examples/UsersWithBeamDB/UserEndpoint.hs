@@ -41,11 +41,18 @@ import WebActions.List
 import WebActions.Retrieve
 import WebActions.Update
 
+data AuthView = AuthView
+  { authViewId :: Int
+  , authViewPassword :: T.Text
+  , authViewCreatedAt :: LocalTime
+  } deriving (Generic, Aeson.ToJSON)
+
 data UserView = UserView
   { userViewId :: Int
   , userViewFirstName :: T.Text
   , userViewLastName :: T.Text
   , userViewIsStaff :: Bool
+  , userViewAuth :: AuthView
   } deriving (Generic, Aeson.ToJSON)
 
 data UserBody = UserBody
@@ -55,14 +62,24 @@ data UserBody = UserBody
   , userBodyPassword :: T.Text
   } deriving (Generic, Aeson.FromJSON)
 
+serializeAuthBody Auth {..} =
+  AuthView
+  { authViewId = fromId authId
+  , authViewPassword = authPassword
+  , authViewCreatedAt = authCreatedAt
+  }
+
 deserializeUserBody Nothing UserBody {..} = do
   time <- getCurrentTime
   return
     User
     { userId = Empty
-    -- , userAuth =
-    --     Auth
-    --     {authId = Empty, authPassword = userBodyPassword, authCreatedAt = time}
+    , userAuth =
+        Auth
+        { authId = Empty
+        , authPassword = userBodyPassword
+        , authCreatedAt = utcToLocalTime (minutesToTimeZone 0) time
+        }
     , userFirstName = userBodyFirstName
     , userLastName = userBodyLastName
     , userIsStaff = userBodyIsStaff
@@ -75,6 +92,7 @@ serializeUserBody User {..} =
   , userViewFirstName = userFirstName
   , userViewLastName = userLastName
   , userViewIsStaff = userIsStaff
+  , userViewAuth = serializeAuthBody userAuth
   }
 
 instance ToJWT User
