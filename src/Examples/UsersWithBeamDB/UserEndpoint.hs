@@ -135,7 +135,8 @@ instance HasListMethod User where
   data ListActionView User = ListUserView UserView
                          deriving (Generic, Aeson.ToJSON)
 
-instance HasRetrieveMethod User User where
+instance HasRetrieveMethod User where
+  type Requester User = User
   data RetrieveActionView User = RetrieveUserView UserView
                              deriving (Generic, Aeson.ToJSON)
 

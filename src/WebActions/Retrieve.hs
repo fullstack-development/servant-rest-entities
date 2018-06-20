@@ -24,13 +24,14 @@ class ( Generic e
       , MonadIO (MonadDB (DBModel e))
       , MonadError ServantErr (MonadDB (DBModel e))
       ) =>
-      HasRetrieveMethod e requester
-  | e -> requester
+      HasRetrieveMethod e
+  | e -> e
   where
+  type Requester e
   data RetrieveActionView e
   retrieve' ::
        Proxy e
-    -> AuthResult requester
+    -> AuthResult (Requester e)
     -> Int
     -> MonadDB (DBModel e) (RetrieveActionView e)
   retrieve' p (Authenticated requester) pk = do
@@ -53,7 +54,7 @@ class ( Generic e
     isEntityAllowed <- checkEntityPermission Nothing model
     unless isEntityAllowed (throwError err403)
     pure (serialize model :: RetrieveActionView e)
-  checkAccessPermission :: AccessPermissionCheck e requester
+  checkAccessPermission :: AccessPermissionCheck e (Requester e)
   checkAccessPermission _ _ = return True
-  checkEntityPermission :: EntityPermissionCheck e requester
+  checkEntityPermission :: EntityPermissionCheck e (Requester e)
   checkEntityPermission _ _ = return True

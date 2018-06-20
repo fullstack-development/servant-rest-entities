@@ -19,7 +19,7 @@ import qualified Data.Aeson as Aeson
 import Data.Maybe
 import Data.Proxy
 import qualified Data.Text as T
-import Data.Time
+import Data.Time.Clock
 import Data.Void
 import GHC.Generics
 import Network.Wai.Handler.Warp
@@ -113,7 +113,8 @@ instance HasListMethod User where
   data ListActionView User = ListUserView UserView
                          deriving (Generic, Aeson.ToJSON)
 
-instance HasRetrieveMethod User User where
+instance HasRetrieveMethod User where
+  type Requester User = User
   data RetrieveActionView User = RetrieveUserView UserView
                              deriving (Generic, Aeson.ToJSON)
 
@@ -136,16 +137,21 @@ type FullApi = Api User :<|> LoginAPI
 routes :: Proxy FullApi
 routes = Proxy
 
-mkApp jwtSecret =
-  let cookieCfg = ServantAuth.defaultCookieSettings
-      jwtCfg = ServantAuth.defaultJWTSettings jwtSecret
-      cfg = cookieCfg :. jwtCfg :. EmptyContext
-  in serveWithContext routes cfg (fullApi cookieCfg jwtCfg)
+mkApp jwtSecret = do
+  time <- getCurrentTime
+  let authDuration = fromRational 1 :: NominalDiffTime
+  let authExpiresIn = addUTCTime authDuration time
+  let cookieCfg =
+        ServantAuth.defaultCookieSettings
+        {ServantAuth.cookieExpires = Just authExpiresIn}
+  let jwtCfg = ServantAuth.defaultJWTSettings jwtSecret
+  let cfg = cookieCfg :. jwtCfg :. EmptyContext
+  return $ serveWithContext routes cfg (fullApi cookieCfg jwtCfg)
 
 runUserService :: IO ()
 runUserService = do
   jwtSecret <- ServantAuth.generateKey
-  let app = mkApp jwtSecret
+  app <- mkApp jwtSecret
   run 8081 app
 
 instance ServantAuth.ToJWT User

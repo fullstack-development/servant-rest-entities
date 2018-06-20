@@ -60,9 +60,9 @@ users =
     }
   , User
     { userId = PrimaryKey 2
-    , userFirstName = Column "Nikita"
-    , userLastName = Column "Razmakhnin"
-    , userIsStaff = Column False
+    , userFirstName = Column "Sergey"
+    , userLastName = Column "Cherepanov"
+    , userIsStaff = Column True
     , userCreatedAt = Column $ UTCTime (ModifiedJulianDay 0) 0
     }
   ]
