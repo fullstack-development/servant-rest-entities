@@ -117,6 +117,9 @@ instance HasRetrieveMethod User where
   type Requester User = User
   data RetrieveActionView User = RetrieveUserView UserView
                              deriving (Generic, Aeson.ToJSON)
+  checkEntityPermission (Just user) entity =
+    return (userId user == userId entity)
+  checkEntityPermission _ _ = return False
 
 instance Resource User where
   type Api User = CreateApi "users" (CreateActionBody User) (CreateActionView User) :<|> DeleteApi "users" :<|> UpdateApi "users" (UpdateActionBody User) (UpdateActionView User) :<|> ListApi "users" (ListActionView User) :<|> ProtectedApi '[ ServantAuth.JWT] (RetrieveApi "users" (RetrieveActionView User)) User
