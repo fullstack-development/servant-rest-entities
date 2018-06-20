@@ -12,7 +12,9 @@ module Examples.SimpleUser.Server
   ( runUserService
   ) where
 
+import Control.Monad
 import Control.Monad.IO.Class
+import Control.Monad.Trans.Maybe
 import qualified Data.Aeson as Aeson
 import Data.Maybe
 import Data.Proxy
@@ -29,6 +31,7 @@ import qualified Examples.SimpleUser.DB as DB
 import Examples.SimpleUser.DBBridge
 import Examples.SimpleUser.Model
 import Model
+import Permissions
 import Resource
 import Routing
 import Serializables
@@ -110,14 +113,15 @@ instance HasListMethod User where
   data ListActionView User = ListUserView UserView
                          deriving (Generic, Aeson.ToJSON)
 
-instance HasRetrieveMethod User Void where
+instance HasRetrieveMethod User User where
   data RetrieveActionView User = RetrieveUserView UserView
                              deriving (Generic, Aeson.ToJSON)
 
 instance Resource User where
-  type Api User = CreateApi "users" (CreateActionBody User) (CreateActionView User) :<|> DeleteApi "users" :<|> UpdateApi "users" (UpdateActionBody User) (UpdateActionView User) :<|> ListApi "users" (ListActionView User) :<|> RetrieveApi "users" (RetrieveActionView User)
+  type Api User = CreateApi "users" (CreateActionBody User) (CreateActionView User) :<|> DeleteApi "users" :<|> UpdateApi "users" (UpdateActionBody User) (UpdateActionView User) :<|> ListApi "users" (ListActionView User) :<|> ProtectedApi '[ ServantAuth.JWT] (RetrieveApi "users" (RetrieveActionView User)) User
   server proxyEntity =
-    create :<|> delete proxyEntity :<|> update :<|> list :<|> retrieve
+    create :<|> delete proxyEntity :<|> update :<|> list :<|>
+    retrieve' proxyEntity
 
 fullApi cs jwts = server (Proxy :: Proxy User) :<|> login cs jwts
 
@@ -159,16 +163,14 @@ login ::
   -> LoginBody
   -> Handler LoginResponse
 login cookieSettings jwtSettings (LoginBody name password) = do
-  dbUser <- getByIdWithRelsFromDB 1 (Proxy :: Proxy DB.User)
-  let user =
-        maybe
-          Nothing
-          (\(model, rels) -> Just $ dbConvertFrom model (Just rels))
-          dbUser
-  case user of
-    Nothing -> throwError err404
-    Just usr -> do
-      mApplyCookies <-
-        liftIO (ServantAuth.acceptLogin cookieSettings jwtSettings usr)
-      let resp = fromJust mApplyCookies NoContent
-      return resp
+  mDbUser <- getByIdWithRelsFromDB 1 (Proxy :: Proxy DB.User)
+  resp <-
+    runMaybeT $ do
+      (model, rels) <- MaybeT . return $ mDbUser
+      let user = dbConvertFrom model (Just rels)
+      let accept = ServantAuth.acceptLogin cookieSettings jwtSettings user
+      mApplyCookies <- liftIO accept
+      applyCookies <- MaybeT . return $ mApplyCookies
+      return $ applyCookies NoContent
+  when (isNothing resp) (throwError err401)
+  return . fromJust $ resp

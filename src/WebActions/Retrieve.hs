@@ -42,6 +42,7 @@ class ( Generic e
     isEntityAllowed <- checkEntityPermission (Just requester) model
     unless isEntityAllowed (throwError err403)
     pure (serialize model :: RetrieveActionView e)
+  retrieve' _ _ _ = throwError err401
   retrieve :: Int -> MonadDB (DBModel e) (RetrieveActionView e)
   retrieve pk = do
     Just (dbModel, dbRels) <-
