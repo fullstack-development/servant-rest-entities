@@ -34,6 +34,8 @@ dependencies:
 - servant-auth
 - servant-auth-server
 - cookie
+- case-insensitive
+- MissingH
 
 - beam-core
 - beam-postgres

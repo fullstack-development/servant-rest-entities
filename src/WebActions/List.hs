@@ -30,9 +30,7 @@ class ( Generic e
   list :: MonadDB (DBModel e) [ListActionView e]
   list = do
     isAccessAllowed <- checkAccessPermission Nothing (Proxy :: Proxy e)
-    dbEntities <-
-      getAllFromDBWithRels :: MonadDB (DBModel e) [( DBModel e
-                                                   , DBModel (ChildRelations e))]
+    dbEntities <- getAllFromDBWithRels (Proxy :: Proxy (DBModel e))
     let models = convertToModels <$> dbEntities
     isEntitiesAllowed <- and <$> mapM (checkEntityPermission Nothing) models
     unless isEntitiesAllowed (throwError err401)

@@ -5,7 +5,8 @@
 module Examples.SimpleUser.DB where
 
 import Data.List
-import Data.Text hiding (find)
+import Data.Maybe
+import Data.Text hiding (find, map)
 import Data.Time
 import Data.Time.Clock
 import Servant
@@ -103,7 +104,12 @@ instance DBEntity Model.User User where
     case (user, auth) of
       (Just u, Just a) -> return $ Just (u, a)
       _ -> return Nothing
-  getAllFromDBWithRels = undefined
+  getAllFromDBWithRels _ =
+    return $
+    map
+      (\u ->
+         (u, fromJust $ find (\a -> fromFK (authUserId a) == userId u) auths))
+      users
   getAllFromDB = pure []
 
 instance DBEntity Model.Auth Auth where

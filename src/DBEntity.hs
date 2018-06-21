@@ -67,4 +67,5 @@ class DBEntity model dbmodel | dbmodel -> model where
   deleteFromDB :: Proxy dbmodel -> Int -> MonadDB dbmodel (Either String ())
   getAllFromDB :: MonadDB dbmodel [dbmodel]
   getAllFromDBWithRels ::
-       MonadDB dbmodel [(dbmodel, DBModel (ChildRelations model))]
+       Proxy dbmodel
+    -> MonadDB dbmodel [(dbmodel, DBModel (ChildRelations model))]

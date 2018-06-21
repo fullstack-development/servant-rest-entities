@@ -30,20 +30,19 @@ class ( Generic e
   type Requester e
   data RetrieveActionView e
   retrieve' ::
-       Proxy e
-    -> AuthResult (Requester e)
+       AuthResult (Requester e)
     -> Int
     -> MonadDB (DBModel e) (RetrieveActionView e)
-  retrieve' p (Authenticated requester) pk = do
+  retrieve' (Authenticated requester) pk = do
     Just (dbModel, dbRels) <-
       getByIdWithRelsFromDB pk (Proxy :: Proxy (DBModel e))
-    isAccessAllowed <- checkAccessPermission (Just requester) p
+    isAccessAllowed <- checkAccessPermission (Just requester) (Proxy :: Proxy e)
     unless isAccessAllowed (throwError err403)
     let model = dbConvertFrom dbModel (Just dbRels)
     isEntityAllowed <- checkEntityPermission (Just requester) model
     unless isEntityAllowed (throwError err403)
     pure (serialize model :: RetrieveActionView e)
-  retrieve' _ _ _ = throwError err401
+  retrieve' _ _ = throwError err401
   retrieve :: Int -> MonadDB (DBModel e) (RetrieveActionView e)
   retrieve pk = do
     Just (dbModel, dbRels) <-

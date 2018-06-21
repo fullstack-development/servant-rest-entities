@@ -27,6 +27,7 @@ class ( Generic e
       HasCreateMethod e
   | e -> e
   where
+  type Requester e
   data CreateActionBody e
   data CreateActionView e
   create :: CreateActionBody e -> MonadDB (DBModel e) (CreateActionView e)
@@ -39,5 +40,5 @@ class ( Generic e
     let newModel = dbConvertFrom newDbModel Nothing
     let view = serialize newModel
     pure view
-  checkAccessPermission :: AccessPermissionCheck e Void
+  checkAccessPermission :: AccessPermissionCheck e (Requester e)
   checkAccessPermission _ _ = return True

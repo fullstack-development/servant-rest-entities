@@ -118,6 +118,7 @@ instance Serializable User (RetrieveActionView User) where
   serialize user = RetrieveUserView $ serializeUserBody user
 
 instance HasCreateMethod User where
+  type Requester User = User
   data CreateActionBody User = CreateUserBody UserBody
                            deriving (Generic, Aeson.FromJSON)
   data CreateActionView User = CreateUserView UserView
@@ -147,6 +148,6 @@ instance Resource User where
 
 userServerApi :: ServerT (Api User) ServerConfigReader
 userServerApi =
-  create :<|> delete userProxy :<|> update :<|> list :<|> retrieve' userProxy
+  create :<|> delete userProxy :<|> update :<|> list :<|> retrieve'
   where
     userProxy = Proxy :: Proxy User

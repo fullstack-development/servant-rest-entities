@@ -44,7 +44,7 @@ instance DBEntity User DB.User where
   deleteFromDB _ _ = pure undefined
   getByIdFromDB _ = pure Nothing
   getByIdWithRelsFromDB _ _ = undefined
-  getAllFromDBWithRels = runDB selectUsersWithAuth
+  getAllFromDBWithRels _ = runDB selectUsersWithAuth
 
 type instance DBModel User = DB.User
 

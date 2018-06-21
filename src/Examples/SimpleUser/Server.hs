@@ -1,4 +1,5 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleInstances #-}
@@ -16,6 +17,9 @@ import Control.Monad
 import Control.Monad.IO.Class
 import Control.Monad.Trans.Maybe
 import qualified Data.Aeson as Aeson
+import qualified Data.ByteString.Char8 as Char8
+import qualified Data.CaseInsensitive as CI
+import Data.List hiding (delete)
 import Data.Maybe
 import Data.Proxy
 import qualified Data.Text as T
@@ -25,6 +29,7 @@ import GHC.Generics
 import Network.Wai.Handler.Warp
 import Servant
 import qualified Servant.Auth.Server as ServantAuth
+import qualified Web.Cookie as Cookie
 
 import DBEntity
 import qualified Examples.SimpleUser.DB as DB
@@ -54,6 +59,10 @@ data UserBody = UserBody
   , userBodyIsStaff :: Bool
   , userBodyPassword :: T.Text
   } deriving (Generic, Aeson.FromJSON)
+
+newtype LoginView = LoginView
+  { token :: String
+  } deriving (Generic, Aeson.FromJSON, Aeson.ToJSON)
 
 deserializeUserBody Nothing UserBody {..} = do
   time <- getCurrentTime
@@ -96,6 +105,7 @@ instance Serializable User (RetrieveActionView User) where
   serialize user = RetrieveUserView $ serializeUserBody user
 
 instance HasCreateMethod User where
+  type Requester User = User
   data CreateActionBody User = CreateUserBody UserBody
                            deriving (Generic, Aeson.FromJSON)
   data CreateActionView User = CreateUserView UserView
@@ -124,16 +134,14 @@ instance HasRetrieveMethod User where
 instance Resource User where
   type Api User = CreateApi "users" (CreateActionBody User) (CreateActionView User) :<|> DeleteApi "users" :<|> UpdateApi "users" (UpdateActionBody User) (UpdateActionView User) :<|> ListApi "users" (ListActionView User) :<|> ProtectedApi '[ ServantAuth.JWT] (RetrieveApi "users" (RetrieveActionView User)) User
   server proxyEntity =
-    create :<|> delete proxyEntity :<|> update :<|> list :<|>
-    retrieve' proxyEntity
+    create :<|> delete proxyEntity :<|> update :<|> list :<|> retrieve'
 
 fullApi cs jwts = server (Proxy :: Proxy User) :<|> login cs jwts
 
-type LoginAPI
-   = "login" :> ReqBody '[ JSON] LoginBody :> PostNoContent '[ JSON] LoginResponse
+type LoginAPI = "login" :> ReqBody '[ JSON] LoginBody :> Post '[ JSON] LoginView
 
-type LoginResponse
-   = Headers '[ Header "Set-Cookie" ServantAuth.SetCookie, Header "Set-Cookie" ServantAuth.SetCookie] NoContent
+type LoginResponse r
+   = Headers '[ Header "Set-Cookie" ServantAuth.SetCookie, Header "Set-Cookie" ServantAuth.SetCookie] r
 
 type FullApi = Api User :<|> LoginAPI
 
@@ -170,16 +178,29 @@ login ::
      ServantAuth.CookieSettings
   -> ServantAuth.JWTSettings
   -> LoginBody
-  -> Handler LoginResponse
+  -> Handler LoginView
 login cookieSettings jwtSettings (LoginBody name password) = do
-  mDbUser <- getByIdWithRelsFromDB 1 (Proxy :: Proxy DB.User)
+  dbUsers <- getAllFromDBWithRels (Proxy :: Proxy DB.User)
   resp <-
     runMaybeT $ do
-      (model, rels) <- MaybeT . return $ mDbUser
-      let user = dbConvertFrom model (Just rels)
+      let users =
+            map (\(model, rels) -> dbConvertFrom model (Just rels)) dbUsers
+      user <- MaybeT . return . find byNameAndPassword $ users
       let accept = ServantAuth.acceptLogin cookieSettings jwtSettings user
-      mApplyCookies <- liftIO accept
-      applyCookies <- MaybeT . return $ mApplyCookies
-      return $ applyCookies NoContent
+      mApplyCookies <- MaybeT . return <$> liftIO accept
+      applyCookies :: NoContent -> LoginResponse NoContent <- mApplyCookies
+      let cookiesResp = applyCookies NoContent
+      let headers = getHeaders cookiesResp
+      (_, tokenCookie) <- MaybeT . return . find findJwtHeader $ headers
+      let jwtToken =
+            Char8.unpack . Cookie.setCookieValue . Cookie.parseSetCookie $
+            tokenCookie
+      return $ LoginView jwtToken
   when (isNothing resp) (throwError err401)
   return . fromJust $ resp
+  where
+    byNameAndPassword User {..} =
+      userFirstName == T.pack name && (authPassword userAuth == T.pack password)
+    findJwtHeader (key, value)
+      | CI.mk "Set-Cookie" == key = True
+      | otherwise = False
