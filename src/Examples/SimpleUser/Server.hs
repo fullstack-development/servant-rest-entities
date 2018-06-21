@@ -195,8 +195,7 @@ login cookieSettings jwtSettings (LoginBody name password) = do
             Char8.unpack . Cookie.setCookieValue . Cookie.parseSetCookie $
             tokenCookie
       return $ LoginView jwtToken
-  when (isNothing resp) (throwError err401)
-  return . fromJust $ resp
+  maybe (throwError err401) return resp
   where
     byNameAndPassword User {..} =
       userFirstName == T.pack name && (authPassword userAuth == T.pack password)
