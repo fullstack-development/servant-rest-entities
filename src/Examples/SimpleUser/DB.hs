@@ -4,9 +4,11 @@
 
 module Examples.SimpleUser.DB where
 
+import Control.Monad
+import Control.Monad.Trans.Maybe
 import Data.List
 import Data.Maybe
-import Data.Text hiding (find, map)
+import Data.Text hiding (find)
 import Data.Time
 import Data.Time.Clock
 import Servant
@@ -91,26 +93,22 @@ instance DBEntity Model.User User where
   type MonadDB User = Handler
   type ChildRelations Model.User = Model.Auth
   type ParentRelations Model.User = ()
-  save user = pure undefined
-  deleteFromDB _ _ = pure undefined
-  getByIdFromDB pk = pure Nothing
-  getByIdWithRelsFromDB pk _ = do
-    let user = find (\u -> fromPK (userId u) == pk) users
-    let auth =
-          maybe
-            Nothing
-            (\u -> find (\a -> fromFK (authUserId a) == userId u) auths)
-            user
-    case (user, auth) of
-      (Just u, Just a) -> return $ Just (u, a)
-      _ -> return Nothing
-  getAllFromDBWithRels _ =
-    return $
-    map
-      (\u ->
-         (u, fromJust $ find (\a -> fromFK (authUserId a) == userId u) auths))
-      users
-  getAllFromDB = pure []
+  save = pure
+  deleteFromDB _ _ = pure $ Right ()
+  getByIdFromDB pk = return $ find (\u -> fromPK (userId u) == pk) users
+  getByIdWithRelsFromDB pk _ =
+    runMaybeT $ do
+      user <- wrap $ find (\u -> fromPK (userId u) == pk) users
+      auth <- wrap $ find (\a -> fromFK (authUserId a) == userId user) auths
+      return (user, auth)
+    where
+      wrap = MaybeT . return
+  getAllFromDBWithRels _ = return $ addRels <$> users
+    where
+      addRels user = (user, fromJust $ authFor user)
+      authFor user = find (authByUserId $ userId user) auths
+      authByUserId id auth = fromFK (authUserId auth) == id
+  getAllFromDB = pure users
 
 instance DBEntity Model.Auth Auth where
   type MonadDB Auth = Handler
