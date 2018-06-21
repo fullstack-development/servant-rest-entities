@@ -11,6 +11,7 @@
 
 module Examples.UsersWithBeamDB.UserEndpoint where
 
+import Control.Monad.IO.Class
 import qualified Data.Aeson as Aeson
 import Data.Proxy
 import qualified Data.Text as T
@@ -19,6 +20,7 @@ import GHC.Generics
 import Servant
 import Servant.Auth.Server
 
+import DBEntity
 import qualified Examples.UsersWithBeamDB.DBEntity as DB
 import Examples.UsersWithBeamDB.Model
 import Examples.UsersWithBeamDB.ServerConfig
@@ -115,6 +117,12 @@ instance HasCreateMethod User where
                            deriving (Generic, Aeson.FromJSON)
   data CreateActionView User = CreateUserView UserView
                            deriving (Generic, Aeson.ToJSON)
+  create body = do
+    model <- liftIO $ deserialize Nothing body
+    (newDbModel, newAuthModel) <- runDB $ DB.saveUserFromModel model
+    let newModel = dbConvertFrom newDbModel (Just newAuthModel)
+    let view = serialize newModel
+    pure view
 
 instance HasUpdateMethod User where
   data UpdateActionBody User = UpdateUserBody UserBody
@@ -134,12 +142,11 @@ instance HasRetrieveMethod User where
                              deriving (Generic, Aeson.ToJSON)
 
 instance Resource User where
-  type Api User = CreateApi "users" (CreateActionBody User) (CreateActionView User) :<|> DeleteApi "users" :<|> UpdateApi "users" (UpdateActionBody User) (UpdateActionView User) :<|> ListApi "users" (ListActionView User) :<|> ProtectedApi '[ JWT] (RetrieveApi "users" (RetrieveActionView User)) User
+  type Api User = CreateApi "users" (CreateActionBody User) (CreateActionView User) :<|> DeleteApi "users" :<|> UpdateApi "users" (UpdateActionBody User) (UpdateActionView User) :<|> ListApi "users" (ListActionView User) :<|> RetrieveApi "users" (RetrieveActionView User)
   server :: Proxy User -> ServerT (Api User) ServerConfigReader
   server proxyEntity = userServerApi
 
 userServerApi :: ServerT (Api User) ServerConfigReader
-userServerApi =
-  create :<|> delete userProxy :<|> update :<|> list :<|> retrieve'
+userServerApi = create :<|> delete userProxy :<|> update :<|> list :<|> retrieve
   where
     userProxy = Proxy :: Proxy User

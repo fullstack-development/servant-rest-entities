@@ -60,8 +60,8 @@ class DBEntity model dbmodel | dbmodel -> model where
   save :: dbmodel -> MonadDB dbmodel dbmodel
   getByIdFromDB :: Int -> MonadDB dbmodel (Maybe dbmodel)
   getByIdWithRelsFromDB ::
-       Int
-    -> Proxy dbmodel
+       Proxy dbmodel
+    -> Int
     -> MonadDB dbmodel (Maybe (dbmodel, DBModel (ChildRelations model)))
   deleteFromDB :: Proxy dbmodel -> Int -> MonadDB dbmodel (Either String ())
   getAllFromDB :: MonadDB dbmodel [dbmodel]

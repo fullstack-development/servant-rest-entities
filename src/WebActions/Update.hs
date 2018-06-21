@@ -36,7 +36,7 @@ class ( Generic e
     modelUpdates <- liftIO $ deserialize (Just entityId) body -- Get updates
     -- Get entity with all her relations
     Just (dbModel, dbModelRels) <-
-      getByIdWithRelsFromDB entityId (Proxy :: Proxy (DBModel e))
+      getByIdWithRelsFromDB (Proxy :: Proxy (DBModel e)) entityId
     -- Obtain updated model
     let existingModel = dbConvertFrom dbModel (Just dbModelRels)
     isEntityAllowed <- checkEntityPermission Nothing existingModel

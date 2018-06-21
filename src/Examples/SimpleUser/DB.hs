@@ -94,7 +94,7 @@ instance DBEntity Model.User User where
   save = pure
   deleteFromDB _ _ = pure $ Right ()
   getByIdFromDB pk = return $ find (\u -> fromPK (userId u) == pk) users
-  getByIdWithRelsFromDB pk _ =
+  getByIdWithRelsFromDB _ pk =
     runMaybeT $ do
       user <- wrap $ find (\u -> fromPK (userId u) == pk) users
       auth <- wrap $ find (\a -> fromFK (authUserId a) == userId user) auths

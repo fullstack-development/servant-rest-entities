@@ -22,7 +22,7 @@ import Database.Beam.Postgres
 --
 -- USER Model
 data UserT f = User
-  { _userId :: Columnar f (SqlSerial Int)
+  { _userId :: Columnar f Int
   , _userFirstName :: Columnar f Text
   , _userLastName :: Columnar f Text
   , _userCreatedAt :: Columnar f LocalTime
@@ -39,7 +39,7 @@ deriving instance Show User
 deriving instance Eq User
 
 instance Table UserT where
-  data PrimaryKey UserT f = UserId (Columnar f (SqlSerial Int))
+  data PrimaryKey UserT f = UserId (Columnar f Int)
                         deriving (Generic, Beamable)
   primaryKey = UserId . _userId
 
@@ -68,7 +68,7 @@ users =
 --
 -- AUTH Model
 data AuthT f = Auth
-  { _authId :: Columnar f (SqlSerial Int)
+  { _authId :: Columnar f Int
   , _authPassword :: Columnar f Text
   , _authCreatedAt :: Columnar f LocalTime
   } deriving (Generic, Beamable)
@@ -82,7 +82,7 @@ deriving instance Show Auth
 deriving instance Eq Auth
 
 instance Table AuthT where
-  data PrimaryKey AuthT f = AuthId (Columnar f (SqlSerial Int))
+  data PrimaryKey AuthT f = AuthId (Columnar f Int)
                         deriving (Generic, Beamable)
   primaryKey = AuthId . _authId
 

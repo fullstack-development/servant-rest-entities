@@ -33,7 +33,7 @@ class ( Generic e
     -> MonadDB (DBModel e) (RetrieveActionView e)
   retrieve' (Authenticated requester) pk = do
     Just (dbModel, dbRels) <-
-      getByIdWithRelsFromDB pk (Proxy :: Proxy (DBModel e))
+      getByIdWithRelsFromDB (Proxy :: Proxy (DBModel e)) pk
     isAccessAllowed <- checkAccessPermission (Just requester) (Proxy :: Proxy e)
     unless isAccessAllowed (throwError err403)
     let model = dbConvertFrom dbModel (Just dbRels)
@@ -44,7 +44,7 @@ class ( Generic e
   retrieve :: Int -> MonadDB (DBModel e) (RetrieveActionView e)
   retrieve pk = do
     Just (dbModel, dbRels) <-
-      getByIdWithRelsFromDB pk (Proxy :: Proxy (DBModel e))
+      getByIdWithRelsFromDB (Proxy :: Proxy (DBModel e)) pk
     isAccessAllowed <- checkAccessPermission Nothing (Proxy :: Proxy e)
     unless isAccessAllowed (throwError err403)
     let model = dbConvertFrom dbModel (Just dbRels)
