@@ -7,19 +7,13 @@
 
 module Examples.UsersWithBeamDB.DBEntity where
 
-import Data.Text (Text)
-import Data.Time
-import GHC.Generics (Generic)
-
 import Database.Beam
 import Database.Beam.Backend.SQL.Types (unSerial)
 import Database.Beam.Postgres
-import qualified Database.PostgreSQL.Simple as Pg
 
 import DBEntity
 import qualified Examples.UsersWithBeamDB.Database as DB
 import Examples.UsersWithBeamDB.Model
-import Examples.UsersWithBeamDB.RunDB
 import Examples.UsersWithBeamDB.ServerConfig
 import Model
 

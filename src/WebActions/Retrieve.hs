@@ -8,9 +8,7 @@ module WebActions.Retrieve where
 
 import Control.Monad
 import Control.Monad.Except
-import Control.Monad.IO.Class
 import DBEntity
-import Data.Void
 import GHC.Generics
 import Permissions
 import Serializables

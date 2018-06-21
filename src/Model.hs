@@ -4,8 +4,6 @@
 module Model where
 
 import Data.Aeson
-import qualified Data.Text as T
-import Data.Time.Clock
 import GHC.Generics
 
 data Id a

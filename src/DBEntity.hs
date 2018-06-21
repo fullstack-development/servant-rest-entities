@@ -12,8 +12,7 @@
 
 module DBEntity where
 
-import Control.Monad.IO.Class (MonadIO)
-import Data.Proxy (Proxy(Proxy))
+import Data.Proxy
 
 class HasDbRun (actionMonad :: * -> *) (dbMonad :: * -> *) where
   runDB :: dbMonad a -> actionMonad a

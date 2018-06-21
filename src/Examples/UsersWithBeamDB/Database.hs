@@ -17,7 +17,6 @@ import GHC.Generics (Generic)
 import Database.Beam
 import Database.Beam.Backend.SQL.Types (SqlSerial)
 import Database.Beam.Postgres
-import qualified Database.PostgreSQL.Simple as Pg
 
 -- === MODELS ===
 --

@@ -10,9 +10,7 @@ module Examples.UsersWithBeamDB.Server
   ) where
 
 import Control.Monad.Trans.Reader
-import qualified Data.Aeson as Aeson
 import Data.Proxy
-import GHC.Generics
 import Network.Wai.Handler.Warp
 import Servant
 import Servant.Auth.Server

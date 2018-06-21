@@ -8,17 +8,8 @@
 module Examples.UsersWithBeamDB.RunDB where
 
 import Control.Exception (bracket)
-import Control.Monad.IO.Class (liftIO)
-import Control.Monad.Reader (asks)
-import Data.ByteString (ByteString)
-import Data.Text (Text)
-import Data.Time
-import GHC.Generics (Generic)
 
 import Database.Beam.Postgres
-
-import Examples.UsersWithBeamDB.Database
-import Examples.UsersWithBeamDB.ServerConfig
 
 createPgConn =
   connectPostgreSQL "postgresql://demo@localhost:5432/demorestwithbeam"

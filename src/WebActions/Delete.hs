@@ -7,7 +7,6 @@
 module WebActions.Delete where
 
 import Control.Monad.Except
-import Control.Monad.IO.Class
 import qualified Data.ByteString.Lazy.Char8 as BL
 import Data.Void
 import GHC.Generics
@@ -15,7 +14,6 @@ import Servant
 
 import DBEntity
 import Permissions
-import Serializables
 
 class ( Generic e
       , DBConvertable e (DBModel e)

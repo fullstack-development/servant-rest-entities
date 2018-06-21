@@ -11,24 +11,16 @@
 
 module Examples.UsersWithBeamDB.UserEndpoint where
 
-import Control.Monad.Except
-import Control.Monad.IO.Class
 import qualified Data.Aeson as Aeson
-import Data.Maybe
 import Data.Proxy
 import qualified Data.Text as T
 import Data.Time
-import Database.Beam.Backend.SQL.Types (unSerial)
 import GHC.Generics
-import Network.Wai.Handler.Warp
 import Servant
 import Servant.Auth.Server
 
-import Data.Void
 import qualified Examples.UsersWithBeamDB.DBEntity as DB
-import qualified Examples.UsersWithBeamDB.Database as DB
 import Examples.UsersWithBeamDB.Model
-import qualified Examples.UsersWithBeamDB.RunDB as DB
 import Examples.UsersWithBeamDB.ServerConfig
 import Model
 import Permissions

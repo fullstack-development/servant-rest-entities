@@ -7,8 +7,6 @@
 module WebActions.Update where
 
 import Control.Monad.Except
-import Control.Monad.IO.Class
-import Data.Proxy
 import Data.Void
 import GHC.Generics
 import Servant

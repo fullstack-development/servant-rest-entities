@@ -24,7 +24,6 @@ import Data.Maybe
 import Data.Proxy
 import qualified Data.Text as T
 import Data.Time.Clock
-import Data.Void
 import GHC.Generics
 import Network.Wai.Handler.Warp
 import Servant
@@ -201,6 +200,6 @@ login cookieSettings jwtSettings (LoginBody name password) = do
   where
     byNameAndPassword User {..} =
       userFirstName == T.pack name && (authPassword userAuth == T.pack password)
-    findJwtHeader (key, value)
+    findJwtHeader (key, _)
       | CI.mk "Set-Cookie" == key = True
       | otherwise = False

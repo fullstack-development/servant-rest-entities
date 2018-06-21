@@ -4,13 +4,11 @@
 
 module Examples.SimpleUser.DB where
 
-import Control.Monad
 import Control.Monad.Trans.Maybe
 import Data.List
 import Data.Maybe
 import Data.Text hiding (find)
 import Data.Time
-import Data.Time.Clock
 import Servant
 
 import DBEntity
