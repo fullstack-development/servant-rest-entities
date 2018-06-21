@@ -31,6 +31,10 @@ dependencies:
 - servant-server
 - aeson
 - warp
+- servant-auth
+- servant-auth-server
+- cookie
+- case-insensitive
 
 - beam-core
 - beam-postgres
@@ -47,6 +51,7 @@ executables:
     - -threaded
     - -rtsopts
     - -with-rtsopts=-N
+    - -Wunused-imports
     dependencies:
     - user-service
 

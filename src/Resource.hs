@@ -12,15 +12,10 @@
 
 module Resource where
 
-import Control.Monad.Except
-import Control.Monad.IO.Class
 import GHC.Generics
 import Servant
 
 import DBEntity
-import Model
-import Routing
-import Serializables
 
 class (Generic e, DBConvertable e (DBModel e)) =>
       Resource e

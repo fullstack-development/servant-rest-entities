@@ -6,11 +6,9 @@
 
 module Routing where
 
-import GHC.Generics
 import GHC.TypeLits (Symbol)
 
 -- import Handlers
-import Model
 import Servant.API
 
 type RetrieveApi (name :: Symbol) view

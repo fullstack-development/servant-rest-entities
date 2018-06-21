@@ -1,4 +1,5 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleInstances #-}
@@ -6,24 +7,35 @@
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DeriveAnyClass #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module Examples.SimpleUser.Server
   ( runUserService
   ) where
 
+import Control.Monad
+import Control.Monad.IO.Class
+import Control.Monad.Trans.Maybe
 import qualified Data.Aeson as Aeson
+import qualified Data.ByteString.Char8 as Char8
+import qualified Data.CaseInsensitive as CI
+import Data.List hiding (delete)
 import Data.Maybe
 import Data.Proxy
 import qualified Data.Text as T
-import Data.Time
+import Data.Time.Clock
 import GHC.Generics
 import Network.Wai.Handler.Warp
 import Servant
+import qualified Servant.Auth.Server as ServantAuth
+import qualified Web.Cookie as Cookie
 
 import DBEntity
 import qualified Examples.SimpleUser.DB as DB
+import Examples.SimpleUser.DBBridge
 import Examples.SimpleUser.Model
 import Model
+import Permissions
 import Resource
 import Routing
 import Serializables
@@ -32,58 +44,6 @@ import WebActions.Delete
 import WebActions.List
 import WebActions.Retrieve
 import WebActions.Update
-
-type instance DBModel Auth = DB.Auth
-
-type instance DBModel User = DB.User
-
-instance DBConvertable Auth DB.Auth where
-  type ChildRelations Auth = ()
-  type ParentRelations Auth = User
-  dbConvertTo Auth {..} (Just user) = (dbAuth, ())
-    where
-      dbAuth =
-        DB.Auth
-        { DB.authId =
-            if isIdEmpty authId
-              then DB.def
-              else DB.PrimaryKey (fromId authId)
-        , DB.authPassword = DB.Column authPassword
-        , DB.authCreatedAt = DB.Column authCreatedAt
-        , DB.authUserId = DB.ForeignKey (DB.PrimaryKey (fromId $ userId user))
-        }
-  dbConvertFrom DB.Auth {..} _ =
-    Auth
-    { authId = Id $ DB.fromPK authId
-    , authPassword = DB.fromColumn authPassword
-    , authCreatedAt = DB.fromColumn authCreatedAt
-    }
-
-instance DBConvertable User DB.User where
-  type ChildRelations User = Auth
-  type ParentRelations User = ()
-  dbConvertTo user@User {..} _ = (dbUser, dbAuth)
-    where
-      (dbAuth, rels) = dbConvertTo userAuth (Just user)
-      dbUser =
-        DB.User
-        { userId = DB.PrimaryKey (fromId userId)
-        , userFirstName = DB.Column userFirstName
-        , userLastName = DB.Column userLastName
-        , userCreatedAt = DB.Column userCreatedAt
-        , userIsStaff = DB.Column userIsStaff
-        }
-  dbConvertFrom DB.User {..} (Just auth) =
-    User
-    { userId = Id $ DB.fromPK userId
-    , userFirstName = DB.fromColumn userFirstName
-    , userLastName = DB.fromColumn userLastName
-    , userIsStaff = DB.fromColumn userIsStaff
-    , userCreatedAt = DB.fromColumn userCreatedAt
-    , userAuth = dbConvertFrom auth Nothing
-    }
-  dbConvertFrom _ Nothing =
-    error "You should pass all relations to user db converter."
 
 data UserView = UserView
   { userViewId :: Int
@@ -98,6 +58,10 @@ data UserBody = UserBody
   , userBodyIsStaff :: Bool
   , userBodyPassword :: T.Text
   } deriving (Generic, Aeson.FromJSON)
+
+newtype LoginView = LoginView
+  { token :: String
+  } deriving (Generic, Aeson.FromJSON, Aeson.ToJSON)
 
 deserializeUserBody Nothing UserBody {..} = do
   time <- getCurrentTime
@@ -140,6 +104,7 @@ instance Serializable User (RetrieveActionView User) where
   serialize user = RetrieveUserView $ serializeUserBody user
 
 instance HasCreateMethod User where
+  type Requester User = User
   data CreateActionBody User = CreateUserBody UserBody
                            deriving (Generic, Aeson.FromJSON)
   data CreateActionView User = CreateUserView UserView
@@ -158,21 +123,82 @@ instance HasListMethod User where
                          deriving (Generic, Aeson.ToJSON)
 
 instance HasRetrieveMethod User where
+  type Requester User = User
   data RetrieveActionView User = RetrieveUserView UserView
                              deriving (Generic, Aeson.ToJSON)
+  checkEntityPermission (Just user) entity =
+    return (userId user == userId entity)
+  checkEntityPermission _ _ = return False
 
 instance Resource User where
-  type Api User = CreateApi "users" (CreateActionBody User) (CreateActionView User) :<|> DeleteApi "users" :<|> UpdateApi "users" (UpdateActionBody User) (UpdateActionView User) :<|> ListApi "users" (ListActionView User) :<|> RetrieveApi "users" (RetrieveActionView User)
+  type Api User = CreateApi "users" (CreateActionBody User) (CreateActionView User) :<|> DeleteApi "users" :<|> UpdateApi "users" (UpdateActionBody User) (UpdateActionView User) :<|> ListApi "users" (ListActionView User) :<|> ProtectedApi '[ ServantAuth.JWT] (RetrieveApi "users" (RetrieveActionView User)) User
   server proxyEntity =
-    create :<|> delete proxyEntity :<|> update :<|> list :<|> retrieve
+    create :<|> delete proxyEntity :<|> update :<|> list :<|> retrieve'
 
-fullServer = server (Proxy :: Proxy User)
+fullApi cs jwts = server (Proxy :: Proxy User) :<|> login cs jwts
 
-serverApi :: Proxy (Api User)
-serverApi = Proxy
+type LoginAPI = "login" :> ReqBody '[ JSON] LoginBody :> Post '[ JSON] LoginView
 
-serverApp :: Application
-serverApp = serve serverApi fullServer
+type LoginResponse r
+   = Headers '[ Header "Set-Cookie" ServantAuth.SetCookie, Header "Set-Cookie" ServantAuth.SetCookie] r
+
+type FullApi = Api User :<|> LoginAPI
+
+routes :: Proxy FullApi
+routes = Proxy
+
+mkApp jwtSecret = do
+  time <- getCurrentTime
+  let authDuration = fromRational 1 :: NominalDiffTime
+  let authExpiresIn = addUTCTime authDuration time
+  let cookieCfg =
+        ServantAuth.defaultCookieSettings
+        {ServantAuth.cookieExpires = Just authExpiresIn}
+  let jwtCfg = ServantAuth.defaultJWTSettings jwtSecret
+  let cfg = cookieCfg :. jwtCfg :. EmptyContext
+  return $ serveWithContext routes cfg (fullApi cookieCfg jwtCfg)
 
 runUserService :: IO ()
-runUserService = run 8081 serverApp
+runUserService = do
+  jwtSecret <- ServantAuth.generateKey
+  app <- mkApp jwtSecret
+  run 8081 app
+
+instance ServantAuth.ToJWT User
+
+instance ServantAuth.FromJWT User
+
+data LoginBody = LoginBody
+  { username :: String
+  , password :: String
+  } deriving (Generic, Aeson.FromJSON, Show)
+
+login ::
+     ServantAuth.CookieSettings
+  -> ServantAuth.JWTSettings
+  -> LoginBody
+  -> Handler LoginView
+login cookieSettings jwtSettings (LoginBody name password) = do
+  dbUsers <- getAllFromDBWithRels (Proxy :: Proxy DB.User)
+  resp <-
+    runMaybeT $ do
+      let users =
+            map (\(model, rels) -> dbConvertFrom model (Just rels)) dbUsers
+      user <- MaybeT . return . find byNameAndPassword $ users
+      let accept = ServantAuth.acceptLogin cookieSettings jwtSettings user
+      mApplyCookies <- MaybeT . return <$> liftIO accept
+      applyCookies :: NoContent -> LoginResponse NoContent <- mApplyCookies
+      let cookiesResp = applyCookies NoContent
+      let headers = getHeaders cookiesResp
+      (_, tokenCookie) <- MaybeT . return . find findJwtHeader $ headers
+      let jwtToken =
+            Char8.unpack . Cookie.setCookieValue . Cookie.parseSetCookie $
+            tokenCookie
+      return $ LoginView jwtToken
+  maybe (throwError err401) return resp
+  where
+    byNameAndPassword User {..} =
+      userFirstName == T.pack name && (authPassword userAuth == T.pack password)
+    findJwtHeader (key, _)
+      | CI.mk "Set-Cookie" == key = True
+      | otherwise = False

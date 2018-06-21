@@ -7,19 +7,13 @@
 
 module Examples.UsersWithBeamDB.DBEntity where
 
-import Data.Text (Text)
-import Data.Time
-import GHC.Generics (Generic)
-
 import Database.Beam
 import Database.Beam.Backend.SQL.Types (unSerial)
 import Database.Beam.Postgres
-import qualified Database.PostgreSQL.Simple as Pg
 
 import DBEntity
 import qualified Examples.UsersWithBeamDB.Database as DB
 import Examples.UsersWithBeamDB.Model
-import Examples.UsersWithBeamDB.RunDB
 import Examples.UsersWithBeamDB.ServerConfig
 import Model
 
@@ -37,18 +31,18 @@ selectUsersWithAuth =
 
 instance DBEntity User DB.User where
   type MonadDB DB.User = ServerConfigReader
+  type ChildRelations User = Auth
+  type ParentRelations User = ()
   getAllFromDB = runDB getUsers
   save user = pure undefined
   deleteFromDB _ _ = pure undefined
   getByIdFromDB _ = pure Nothing
   getByIdWithRelsFromDB _ _ = undefined
-  getAllFromDBWithRels = runDB selectUsersWithAuth
+  getAllFromDBWithRels _ = runDB selectUsersWithAuth
 
 type instance DBModel User = DB.User
 
 instance DBConvertable User DB.User where
-  type ChildRelations User = Auth
-  type ParentRelations User = ()
   dbConvertTo user rels = undefined
   dbConvertFrom DB.User {..} (Just auth) =
     User
@@ -63,6 +57,8 @@ type instance DBModel Auth = DB.Auth
 
 instance DBEntity Auth DB.Auth where
   type MonadDB DB.Auth = ServerConfigReader
+  type ChildRelations Auth = ()
+  type ParentRelations Auth = User
   getAllFromDB = undefined
   save user = pure undefined
   deleteFromDB _ _ = pure undefined
@@ -71,8 +67,6 @@ instance DBEntity Auth DB.Auth where
   getAllFromDBWithRels = undefined
 
 instance DBConvertable Auth DB.Auth where
-  type ChildRelations Auth = ()
-  type ParentRelations Auth = User
   dbConvertTo user rels = undefined
   dbConvertFrom DB.Auth {..} _ =
     Auth (Id $ unSerial _authId) _authPassword _authCreatedAt

@@ -11,24 +11,19 @@
 
 module Examples.UsersWithBeamDB.UserEndpoint where
 
-import Control.Monad.Except
-import Control.Monad.IO.Class
 import qualified Data.Aeson as Aeson
-import Data.Maybe
 import Data.Proxy
 import qualified Data.Text as T
 import Data.Time
-import Database.Beam.Backend.SQL.Types (unSerial)
 import GHC.Generics
-import Network.Wai.Handler.Warp
 import Servant
+import Servant.Auth.Server
 
 import qualified Examples.UsersWithBeamDB.DBEntity as DB
-import qualified Examples.UsersWithBeamDB.Database as DB
 import Examples.UsersWithBeamDB.Model
-import qualified Examples.UsersWithBeamDB.RunDB as DB
 import Examples.UsersWithBeamDB.ServerConfig
 import Model
+import Permissions
 import Resource
 import Routing
 import Serializables
@@ -92,6 +87,10 @@ serializeUserBody User {..} =
   , userViewAuth = serializeAuthBody userAuth
   }
 
+instance ToJWT User
+
+instance FromJWT User
+
 instance Serializable User (CreateActionView User) where
   serialize user = CreateUserView $ serializeUserBody user
 
@@ -111,6 +110,7 @@ instance Serializable User (RetrieveActionView User) where
   serialize user = RetrieveUserView $ serializeUserBody user
 
 instance HasCreateMethod User where
+  type Requester User = User
   data CreateActionBody User = CreateUserBody UserBody
                            deriving (Generic, Aeson.FromJSON)
   data CreateActionView User = CreateUserView UserView
@@ -129,14 +129,17 @@ instance HasListMethod User where
                          deriving (Generic, Aeson.ToJSON)
 
 instance HasRetrieveMethod User where
+  type Requester User = User
   data RetrieveActionView User = RetrieveUserView UserView
                              deriving (Generic, Aeson.ToJSON)
 
 instance Resource User where
-  type Api User = CreateApi "users" (CreateActionBody User) (CreateActionView User) :<|> DeleteApi "users" :<|> UpdateApi "users" (UpdateActionBody User) (UpdateActionView User) :<|> ListApi "users" (ListActionView User) :<|> RetrieveApi "users" (RetrieveActionView User)
+  type Api User = CreateApi "users" (CreateActionBody User) (CreateActionView User) :<|> DeleteApi "users" :<|> UpdateApi "users" (UpdateActionBody User) (UpdateActionView User) :<|> ListApi "users" (ListActionView User) :<|> ProtectedApi '[ JWT] (RetrieveApi "users" (RetrieveActionView User)) User
   server :: Proxy User -> ServerT (Api User) ServerConfigReader
   server proxyEntity = userServerApi
 
 userServerApi :: ServerT (Api User) ServerConfigReader
 userServerApi =
-  create :<|> delete (Proxy :: Proxy User) :<|> update :<|> list :<|> retrieve
+  create :<|> delete userProxy :<|> update :<|> list :<|> retrieve'
+  where
+    userProxy = Proxy :: Proxy User

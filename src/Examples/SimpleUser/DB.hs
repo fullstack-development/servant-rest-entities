@@ -4,9 +4,11 @@
 
 module Examples.SimpleUser.DB where
 
-import Data.Text
+import Control.Monad.Trans.Maybe
+import Data.List
+import Data.Maybe
+import Data.Text hiding (find)
 import Data.Time
-import Data.Time.Clock
 import Servant
 
 import DBEntity
@@ -17,6 +19,8 @@ def = error "Default does not exist"
 fromColumn (Column v) = v
 
 fromPK (PrimaryKey pk) = pk
+
+fromFK (ForeignKey k) = k
 
 newtype PrimaryKey a =
   PrimaryKey a
@@ -57,9 +61,9 @@ users =
     }
   , User
     { userId = PrimaryKey 2
-    , userFirstName = Column "Nikita"
-    , userLastName = Column "Razmakhnin"
-    , userIsStaff = Column False
+    , userFirstName = Column "Sergey"
+    , userLastName = Column "Cherepanov"
+    , userIsStaff = Column True
     , userCreatedAt = Column $ UTCTime (ModifiedJulianDay 0) 0
     }
   ]
@@ -79,17 +83,35 @@ auths =
     }
   ]
 
+type instance DBModel Model.Auth = Auth
+
+type instance DBModel Model.User = User
+
 instance DBEntity Model.User User where
   type MonadDB User = Handler
-  save user = pure undefined
-  deleteFromDB _ _ = pure undefined
-  getByIdFromDB _ = pure Nothing
-  getByIdWithRelsFromDB _ _ = undefined
-  getAllFromDBWithRels = undefined
-  getAllFromDB = pure []
+  type ChildRelations Model.User = Model.Auth
+  type ParentRelations Model.User = ()
+  save = pure
+  deleteFromDB _ _ = pure $ Right ()
+  getByIdFromDB pk = return $ find (\u -> fromPK (userId u) == pk) users
+  getByIdWithRelsFromDB pk _ =
+    runMaybeT $ do
+      user <- wrap $ find (\u -> fromPK (userId u) == pk) users
+      auth <- wrap $ find (\a -> fromFK (authUserId a) == userId user) auths
+      return (user, auth)
+    where
+      wrap = MaybeT . return
+  getAllFromDBWithRels _ = return $ addRels <$> users
+    where
+      addRels user = (user, fromJust $ authFor user)
+      authFor user = find (authByUserId $ userId user) auths
+      authByUserId id auth = fromFK (authUserId auth) == id
+  getAllFromDB = pure users
 
 instance DBEntity Model.Auth Auth where
   type MonadDB Auth = Handler
+  type ChildRelations Model.Auth = ()
+  type ParentRelations Model.Auth = Model.User
   save user = pure undefined
   deleteFromDB _ _ = pure undefined
   getByIdFromDB _ = pure Nothing

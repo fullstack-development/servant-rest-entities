@@ -1,7 +1,9 @@
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DeriveAnyClass #-}
 
 module Examples.SimpleUser.Model where
 
+import Data.Aeson
 import qualified Data.Text as T
 import Data.Time.Clock
 import GHC.Generics
@@ -15,10 +17,10 @@ data User = User
   , userCreatedAt :: UTCTime
   , userIsStaff :: Bool
   , userAuth :: Auth
-  } deriving (Show, Eq, Generic)
+  } deriving (Show, Eq, Generic, FromJSON, ToJSON)
 
 data Auth = Auth
   { authId :: Id Int
   , authPassword :: T.Text
   , authCreatedAt :: UTCTime
-  } deriving (Show, Eq, Generic)
+  } deriving (Show, Eq, Generic, FromJSON, ToJSON)

@@ -6,12 +6,13 @@
 
 module WebActions.Update where
 
+import Control.Monad.Except
+import Data.Void
 import GHC.Generics
 import Servant
 
-import Control.Monad.IO.Class
 import DBEntity
-import Data.Proxy
+import Permissions
 import Serializables
 
 class ( Generic e
@@ -20,6 +21,7 @@ class ( Generic e
       , DBConvertable e (DBModel e)
       , Monad (MonadDB (DBModel e))
       , MonadIO (MonadDB (DBModel e))
+      , MonadError ServantErr (MonadDB (DBModel e))
       ) =>
       HasUpdateMethod e
   | e -> e
@@ -29,12 +31,16 @@ class ( Generic e
   update ::
        Int -> UpdateActionBody e -> MonadDB (DBModel e) (UpdateActionView e)
   update entityId body = do
+    isAccessAllowed <- checkAccessPermission Nothing (Proxy :: Proxy e)
+    unless isAccessAllowed (throwError err401)
     modelUpdates <- liftIO $ deserialize (Just entityId) body -- Get updates
     -- Get entity with all her relations
     Just (dbModel, dbModelRels) <-
       getByIdWithRelsFromDB entityId (Proxy :: Proxy (DBModel e))
     -- Obtain updated model
     let existingModel = dbConvertFrom dbModel (Just dbModelRels)
+    isEntityAllowed <- checkEntityPermission Nothing existingModel
+    unless isEntityAllowed (throwError err401)
     let updatedModel = existingModel -- TODO: Do update here - existingModel `patchBy` modelUpdates
     -- Obtain new dbmodel
     let (dbModel, dbRels) = dbConvertTo updatedModel Nothing
@@ -42,3 +48,7 @@ class ( Generic e
     let updatedModel = dbConvertFrom updatedDbModel (Just dbRels)
     let view = serialize updatedModel :: UpdateActionView e
     pure view
+  checkAccessPermission :: AccessPermissionCheck e Void
+  checkAccessPermission _ _ = return True
+  checkEntityPermission :: EntityPermissionCheck e Void
+  checkEntityPermission _ _ = return True

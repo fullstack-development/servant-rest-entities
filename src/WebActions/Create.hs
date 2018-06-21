@@ -6,11 +6,13 @@
 
 module WebActions.Create where
 
-import Control.Monad.IO.Class
+import Control.Monad
+import Control.Monad.Except
 import GHC.Generics
 import Servant
 
 import DBEntity
+import Permissions
 import Serializables
 
 class ( Generic e
@@ -18,17 +20,23 @@ class ( Generic e
       , Serializable e (CreateActionView e)
       , DBConvertable e (DBModel e)
       , MonadIO (MonadDB (DBModel e))
+      , MonadError ServantErr (MonadDB (DBModel e))
       ) =>
       HasCreateMethod e
   | e -> e
   where
+  type Requester e
   data CreateActionBody e
   data CreateActionView e
   create :: CreateActionBody e -> MonadDB (DBModel e) (CreateActionView e)
   create body = do
+    isAccessAllowed <- checkAccessPermission Nothing (Proxy :: Proxy e)
+    unless isAccessAllowed (throwError err401)
     model <- liftIO $ deserialize Nothing body
     let (dbModel, dbRels) = dbConvertTo model Nothing
     newDbModel <- save dbModel
     let newModel = dbConvertFrom newDbModel Nothing
     let view = serialize newModel
     pure view
+  checkAccessPermission :: AccessPermissionCheck e (Requester e)
+  checkAccessPermission _ _ = return True
