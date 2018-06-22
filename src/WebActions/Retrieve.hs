@@ -11,7 +11,6 @@ import Control.Monad.Except
 import Data.Maybe
 import GHC.Generics
 
-import DBEntity
 import DataProvider
 import Permissions
 import Serializables

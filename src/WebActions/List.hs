@@ -6,7 +6,6 @@
 
 module WebActions.List where
 
-import Control.Monad
 import Control.Monad.Except
 import Data.Void
 import GHC.Generics

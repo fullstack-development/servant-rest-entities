@@ -45,9 +45,15 @@ class HasDataProvider model dsmodel | model -> dsmodel where
   type MonadDataProvider model :: * -> *
   type ChildRelations model
   type ParentRelations model
-  unpack :: dsmodel -> Maybe (DataProviderModel (ChildRelations e)) -> model
-  pack :: model -> Maybe (ParentRelations dsmodel) -> dsmodel
+  unpack :: dsmodel -> Maybe (DataProviderModel (ChildRelations model)) -> model
+  pack ::
+       model
+    -> Maybe (ParentRelations model)
+    -> (dsmodel, DataProviderModel (ChildRelations model))
   save :: model -> MonadDataProvider model model
   loadById :: Proxy model -> Int -> MonadDataProvider model (Maybe model)
   loadAll :: Proxy model -> MonadDataProvider model [model]
   deleteById :: Proxy model -> Int -> MonadDataProvider model (Either String ())
+
+class HasDataSourceRun (actionMonad :: * -> *) (dsMonad :: * -> *) where
+  runDS :: dsMonad a -> actionMonad a

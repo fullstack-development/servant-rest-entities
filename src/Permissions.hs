@@ -2,7 +2,6 @@
 
 module Permissions where
 
-import DBEntity
 import Data.Proxy
 import Servant
 import Servant.Auth.Server

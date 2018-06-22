@@ -32,7 +32,7 @@ waiApplication request respond = do
         serverConfig =
           ServerConfig
           { port = 132
-          , withDbConn = conn
+          , withDSConn = conn
           , jwtSettings = jwtSettings
           , cookieSettings = cookieSettings
           }

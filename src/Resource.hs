@@ -12,14 +12,13 @@
 
 module Resource where
 
+import DataProvider
 import GHC.Generics
 import Servant
 
-import DBEntity
-
-class (Generic e, DBConvertable e (DBModel e)) =>
+class (Generic e, HasDataProvider e (DataProviderModel e)) =>
       Resource e
   | e -> e
   where
   type Api e
-  server :: Proxy e -> ServerT (Api e) (MonadDB (DBModel e))
+  server :: Proxy e -> ServerT (Api e) (MonadDataProvider e)
