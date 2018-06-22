@@ -47,12 +47,6 @@ class (DBEntity e to) =>
        e -> Maybe (ParentRelations e) -> (to, DBModel (ChildRelations e))
   dbConvertFrom :: to -> Maybe (DBModel (ChildRelations e)) -> e
 
--- class DBEntity e where
---   type MonadDB e :: * -> *
---   save :: e -> MonadDB e e
---   getAllEntities :: Proxy e -> MonadDB e [e]
---   deleteFromDB :: Proxy e -> Int -> MonadDB e (Either String ())
--- =======
 class DBEntity model dbmodel | dbmodel -> model where
   type ChildRelations model
   type ParentRelations model

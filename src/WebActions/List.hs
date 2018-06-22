@@ -12,32 +12,24 @@ import Data.Void
 import GHC.Generics
 import Servant
 
-import DBEntity
+import DataProvider
 import Permissions
 import Serializables
 
 class ( Generic e
       , Serializable e (ListActionView e)
-      , DBConvertable e (DBModel e)
-      , Monad (MonadDB (DBModel e))
-      , MonadError ServantErr (MonadDB (DBModel e))
-      , MonadIO (MonadDB (DBModel e))
+      , HasDataProvider e (DataProviderModel e)
+      , Monad (MonadDataProvider e)
+      , MonadError ServantErr (MonadDataProvider e)
+      , MonadIO (MonadDataProvider e)
       ) =>
       HasListMethod e
   | e -> e
   where
   data ListActionView e
-  list :: MonadDB (DBModel e) [ListActionView e]
-  list = do
-    isAccessAllowed <- checkAccessPermission Nothing (Proxy :: Proxy e)
-    dbEntities <- getAllFromDBWithRels (Proxy :: Proxy (DBModel e))
-    let models = convertToModels <$> dbEntities
-    isEntitiesAllowed <- and <$> mapM (checkEntityPermission Nothing) models
-    unless isEntitiesAllowed (throwError err401)
-    return $ serialize <$> models
-    where
-      convertToModels (e, rels) = dbConvertFrom e (Just rels)
-  checkAccessPermission :: AccessPermissionCheck e Void
+  list :: MonadDataProvider e [ListActionView e]
+  list = fmap serialize <$> loadAll (Proxy :: Proxy e)
+  checkAccessPermission :: AccessPermissionCheck Void (MonadDataProvider e) e
   checkAccessPermission _ _ = return True
-  checkEntityPermission :: EntityPermissionCheck e Void
+  checkEntityPermission :: EntityPermissionCheck Void (MonadDataProvider e) e
   checkEntityPermission _ _ = return True

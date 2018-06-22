@@ -12,24 +12,22 @@ import Data.Void
 import GHC.Generics
 import Servant
 
-import DBEntity
+import DataProvider
 import Permissions
 
 class ( Generic e
-      , DBConvertable e (DBModel e)
-      , MonadIO (MonadDB (DBModel e))
-      , MonadError ServantErr (MonadDB (DBModel e))
+      , HasDataProvider e (DataProviderModel e)
+      , MonadIO (MonadDataProvider e)
+      , MonadError ServantErr (MonadDataProvider e)
       ) =>
       HasDeleteMethod e
   | e -> e
   where
-  delete :: Proxy e -> Int -> MonadDB (DBModel e) ()
+  delete :: Proxy e -> Int -> MonadDataProvider e ()
   delete proxyType entityId = do
-    isAccessAllowed <- checkAccessPermission Nothing (Proxy :: Proxy e)
-    unless isAccessAllowed (throwError err401)
-    result <- deleteFromDB (Proxy :: Proxy (DBModel e)) entityId
+    result <- deleteById (Proxy :: Proxy e) entityId
     case result of
       Left err -> throwError $ err400 {errBody = BL.pack err}
       Right () -> pure ()
-  checkAccessPermission :: AccessPermissionCheck e Void
+  checkAccessPermission :: AccessPermissionCheck Void (MonadDataProvider e) e
   checkAccessPermission _ _ = return True

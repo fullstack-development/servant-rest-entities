@@ -37,7 +37,6 @@ waiApplication request respond = do
           , cookieSettings = cookieSettings
           }
         cfg = serverConfig :. cookieSettings :. jwtSettings :. EmptyContext
-        -- Possibly we need to do auth here
     in serveWithContext serverApi cfg (initServer serverConfig) request respond
 
 initServer :: ServerConfig -> Server FullApi

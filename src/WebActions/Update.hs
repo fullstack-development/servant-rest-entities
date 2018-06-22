@@ -7,21 +7,22 @@
 module WebActions.Update where
 
 import Control.Monad.Except
+import Data.Maybe
 import Data.Void
 import GHC.Generics
 import Servant
 
-import DBEntity
+import DataProvider
 import Permissions
 import Serializables
 
 class ( Generic e
       , Deserializable e (UpdateActionBody e)
       , Serializable e (UpdateActionView e)
-      , DBConvertable e (DBModel e)
-      , Monad (MonadDB (DBModel e))
-      , MonadIO (MonadDB (DBModel e))
-      , MonadError ServantErr (MonadDB (DBModel e))
+      , HasDataProvider e (DataProviderModel e)
+      , Monad (MonadDataProvider e)
+      , MonadIO (MonadDataProvider e)
+      , MonadError ServantErr (MonadDataProvider e)
       ) =>
       HasUpdateMethod e
   | e -> e
@@ -29,26 +30,16 @@ class ( Generic e
   data UpdateActionBody e
   data UpdateActionView e
   update ::
-       Int -> UpdateActionBody e -> MonadDB (DBModel e) (UpdateActionView e)
+       Int -> UpdateActionBody e -> (MonadDataProvider e) (UpdateActionView e)
   update entityId body = do
-    isAccessAllowed <- checkAccessPermission Nothing (Proxy :: Proxy e)
-    unless isAccessAllowed (throwError err401)
     modelUpdates <- liftIO $ deserialize (Just entityId) body -- Get updates
-    -- Get entity with all her relations
-    Just (dbModel, dbModelRels) <-
-      getByIdWithRelsFromDB (Proxy :: Proxy (DBModel e)) entityId
-    -- Obtain updated model
-    let existingModel = dbConvertFrom dbModel (Just dbModelRels)
-    isEntityAllowed <- checkEntityPermission Nothing existingModel
-    unless isEntityAllowed (throwError err401)
-    let updatedModel = existingModel -- TODO: Do update here - existingModel `patchBy` modelUpdates
-    -- Obtain new dbmodel
-    let (dbModel, dbRels) = dbConvertTo updatedModel Nothing
-    updatedDbModel <- save dbModel
-    let updatedModel = dbConvertFrom updatedDbModel (Just dbRels)
-    let view = serialize updatedModel :: UpdateActionView e
-    pure view
-  checkAccessPermission :: AccessPermissionCheck e Void
+    mbExistingModel <- loadById (Proxy :: Proxy e) entityId
+    when (isNothing mbExistingModel) (throwError err404)
+    let existingModel = fromJust mbExistingModel
+    let updatedUnsavedModel = existingModel -- TODO: Do update here - existingModel `patchBy` modelUpdates
+    updatedModel <- save updatedUnsavedModel
+    return (serialize updatedModel :: UpdateActionView e)
+  checkAccessPermission :: AccessPermissionCheck Void (MonadDataProvider e) e
   checkAccessPermission _ _ = return True
-  checkEntityPermission :: EntityPermissionCheck e Void
+  checkEntityPermission :: EntityPermissionCheck Void (MonadDataProvider e) e
   checkEntityPermission _ _ = return True
