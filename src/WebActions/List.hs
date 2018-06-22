@@ -23,7 +23,6 @@ class ( Generic e
       , MonadIO (MonadDataProvider e)
       ) =>
       HasListMethod e
-  | e -> e
   where
   data ListActionView e
   list :: MonadDataProvider e [ListActionView e]

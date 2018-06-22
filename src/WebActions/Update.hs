@@ -25,7 +25,6 @@ class ( Generic e
       , MonadError ServantErr (MonadDataProvider e)
       ) =>
       HasUpdateMethod e
-  | e -> e
   where
   data UpdateActionBody e
   data UpdateActionView e

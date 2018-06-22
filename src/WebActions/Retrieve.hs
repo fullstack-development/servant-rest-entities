@@ -25,7 +25,6 @@ class ( Generic e
       , MonadError ServantErr (MonadDataProvider e)
       ) =>
       HasRetrieveMethod e
-  | e -> e
   where
   type Requester e
   data RetrieveActionView e

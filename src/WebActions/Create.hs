@@ -23,7 +23,6 @@ class ( Generic e
       , MonadError ServantErr (MonadDataProvider e)
       ) =>
       HasCreateMethod e
-  | e -> e
   where
   type Requester e
   data CreateActionBody e
