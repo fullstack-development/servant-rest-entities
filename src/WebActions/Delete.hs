@@ -16,7 +16,7 @@ import DataProvider
 import Permissions
 
 class ( Generic e
-      , HasDataProvider e (DataProviderModel e)
+      , HasDataProvider e
       , MonadIO (MonadDataProvider e)
       , MonadError ServantErr (MonadDataProvider e)
       ) =>

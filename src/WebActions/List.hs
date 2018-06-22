@@ -17,7 +17,7 @@ import Serializables
 
 class ( Generic e
       , Serializable e (ListActionView e)
-      , HasDataProvider e (DataProviderModel e)
+      , HasDataProvider e
       , Monad (MonadDataProvider e)
       , MonadError ServantErr (MonadDataProvider e)
       , MonadIO (MonadDataProvider e)

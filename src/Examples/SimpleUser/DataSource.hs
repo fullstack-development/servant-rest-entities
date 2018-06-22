@@ -85,11 +85,8 @@ auths =
     }
   ]
 
-type instance DataProviderModel Model.Auth = Auth
-
-type instance DataProviderModel Model.User = User
-
-instance HasDataProvider Model.User User where
+instance HasDataProvider Model.User where
+  type DataProviderModel Model.User = User
   type MonadDataProvider Model.User = Handler
   type ChildRelations Model.User = Model.Auth
   type ParentRelations Model.User = ()
@@ -128,7 +125,8 @@ instance HasDataProvider Model.User User where
         , userIsStaff = Column userIsStaff
         }
 
-instance HasDataProvider Model.Auth Auth where
+instance HasDataProvider Model.Auth where
+  type DataProviderModel Model.Auth = Auth
   type ParentRelations Model.Auth = Model.User
   type ChildRelations Model.Auth = ()
   type MonadDataProvider Model.Auth = Handler

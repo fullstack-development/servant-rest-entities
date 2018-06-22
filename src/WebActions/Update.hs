@@ -19,7 +19,7 @@ import Serializables
 class ( Generic e
       , Deserializable e (UpdateActionBody e)
       , Serializable e (UpdateActionView e)
-      , HasDataProvider e (DataProviderModel e)
+      , HasDataProvider e
       , Monad (MonadDataProvider e)
       , MonadIO (MonadDataProvider e)
       , MonadError ServantErr (MonadDataProvider e)

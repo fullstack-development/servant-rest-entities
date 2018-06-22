@@ -69,9 +69,8 @@ deleteUserFromDB entityId =
     (delete (DB._user DB.demoBeamRestDb) (\u -> DB._userId u ==. val_ entityId)) >>
   pure (Right ())
 
-type instance DataProviderModel User = DB.User
-
-instance HasDataProvider User DB.User where
+instance HasDataProvider User where
+  type DataProviderModel User = DB.User
   type MonadDataProvider User = ServerConfigReader
   type ChildRelations User = Auth
   type ParentRelations User = ()
@@ -107,9 +106,8 @@ instance HasDataProvider User DB.User where
       _userIsStaff
       (unpack auth Nothing)
 
-type instance DataProviderModel Auth = DB.Auth
-
-instance HasDataProvider Auth DB.Auth where
+instance HasDataProvider Auth where
+  type DataProviderModel Auth = DB.Auth
   type MonadDataProvider Auth = ServerConfigReader
   type ChildRelations Auth = ()
   type ParentRelations Auth = User

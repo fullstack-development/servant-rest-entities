@@ -16,7 +16,7 @@ import DataProvider
 import GHC.Generics
 import Servant
 
-class (Generic e, HasDataProvider e (DataProviderModel e)) =>
+class (Generic e, HasDataProvider e) =>
       Resource e
   | e -> e
   where

@@ -18,7 +18,7 @@ import Serializables
 class ( Generic e
       , Deserializable e (CreateActionBody e)
       , Serializable e (CreateActionView e)
-      , HasDataProvider e (DataProviderModel e)
+      , HasDataProvider e
       , MonadIO (MonadDataProvider e)
       , MonadError ServantErr (MonadDataProvider e)
       ) =>
