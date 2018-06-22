@@ -5,30 +5,20 @@
 {-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE RecordWildCards #-}
 
-module Examples.UsersWithBeamDB.DBEntity where
+module Examples.UsersWithBeamDB.DataSource where
 
+import qualified Data.List as L
 import Database.Beam
 import qualified Database.Beam.Backend.SQL.BeamExtensions as BeamExtensions
 import Database.Beam.Backend.SQL.Types (unSerial)
 import Database.Beam.Postgres
 import Database.Beam.Postgres.Syntax
 
-import DBEntity
+import DataProvider
 import qualified Examples.UsersWithBeamDB.Database as DB
 import Examples.UsersWithBeamDB.Model
 import Examples.UsersWithBeamDB.ServerConfig
 import Model
-
-getUsers :: Pg [DB.User]
-getUsers = runSelectReturningList . select . all_ . DB._user $ DB.demoBeamRestDb
-
-getUserById :: Int -> Pg (Maybe DB.User)
-getUserById idvalue =
-  runSelectReturningOne $
-  select $
-  filter_
-    (\u -> pk u ==. val_ (DB.UserId idvalue))
-    (all_ $ DB._user DB.demoBeamRestDb)
 
 getUserByIdWithAuth :: Int -> Pg (Maybe (DB.User, DB.Auth))
 getUserByIdWithAuth idvalue =
@@ -47,13 +37,6 @@ queryUserWithAuth = do
   auth <- all_ (DB._auth DB.demoBeamRestDb)
   guard_ (DB._userAuthId user `references_` auth)
   pure (user, auth)
-
-saveUser :: DB.User -> Pg DB.User
-saveUser user =
-  head <$>
-  BeamExtensions.runInsertReturningList
-    (DB._user DB.demoBeamRestDb)
-    (insertValues [user])
 
 saveUserFromModel :: User -> Pg (DB.User, DB.Auth)
 saveUserFromModel userModel = do
@@ -86,21 +69,24 @@ deleteUserFromDB entityId =
     (delete (DB._user DB.demoBeamRestDb) (\u -> DB._userId u ==. val_ entityId)) >>
   pure (Right ())
 
-instance DBEntity User DB.User where
-  type MonadDB DB.User = ServerConfigReader
+type instance DataProviderModel User = DB.User
+
+instance HasDataProvider User DB.User where
+  type MonadDataProvider User = ServerConfigReader
   type ChildRelations User = Auth
   type ParentRelations User = ()
-  getAllFromDB = runDB getUsers
-  save = runDB . saveUser
-  deleteFromDB _ = runDB . deleteUserFromDB
-  getByIdFromDB = runDB . getUserById
-  getByIdWithRelsFromDB _ = runDB . getUserByIdWithAuth
-  getAllFromDBWithRels _ = runDB selectUsersWithAuth
-
-type instance DBModel User = DB.User
-
-instance DBConvertable User DB.User where
-  dbConvertTo User {..} _ =
+  loadAll _ =
+    map (\(user, auth) -> unpack user (Just auth)) <$> runDS selectUsersWithAuth
+  save user = do
+    (savedUser, savedAuth) <- runDS . saveUserFromModel $ user
+    return $ unpack savedUser (Just savedAuth)
+  deleteById _ = runDS . deleteUserFromDB
+  loadById _ pk = do
+    result <- runDS . getUserByIdWithAuth $ pk
+    let entity =
+          maybe Nothing (\(user, auth) -> Just $ unpack user (Just auth)) result
+    return entity
+  pack User {..} _ =
     ( DB.User
         (fromId userId)
         userFirstName
@@ -112,28 +98,24 @@ instance DBConvertable User DB.User where
         (fromId $ authId userAuth)
         (authPassword userAuth)
         (authCreatedAt userAuth))
-  dbConvertFrom DB.User {..} (Just auth) =
+  unpack DB.User {..} (Just auth) =
     User
       (Id _userId)
       _userFirstName
       _userLastName
       _userCreatedAt
       _userIsStaff
-      (dbConvertFrom auth Nothing)
+      (unpack auth Nothing)
 
-type instance DBModel Auth = DB.Auth
+type instance DataProviderModel Auth = DB.Auth
 
-instance DBEntity Auth DB.Auth where
-  type MonadDB DB.Auth = ServerConfigReader
+instance HasDataProvider Auth DB.Auth where
+  type MonadDataProvider Auth = ServerConfigReader
   type ChildRelations Auth = ()
   type ParentRelations Auth = User
-  getAllFromDB = undefined
+  loadAll _ = undefined
   save user = pure undefined
-  deleteFromDB _ _ = pure undefined
-  getByIdFromDB _ = pure Nothing
-  getByIdWithRelsFromDB _ _ = undefined
-  getAllFromDBWithRels = undefined
-
-instance DBConvertable Auth DB.Auth where
-  dbConvertTo user rels = undefined
-  dbConvertFrom DB.Auth {..} _ = Auth (Id _authId) _authPassword _authCreatedAt
+  deleteById _ _ = pure undefined
+  loadById _ _ = pure Nothing
+  pack user rels = undefined
+  unpack DB.Auth {..} _ = Auth (Id _authId) _authPassword _authCreatedAt

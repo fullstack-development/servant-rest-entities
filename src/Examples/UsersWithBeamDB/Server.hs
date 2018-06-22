@@ -32,12 +32,11 @@ waiApplication request respond = do
         serverConfig =
           ServerConfig
           { port = 132
-          , withDbConn = conn
+          , withDSConn = conn
           , jwtSettings = jwtSettings
           , cookieSettings = cookieSettings
           }
         cfg = serverConfig :. cookieSettings :. jwtSettings :. EmptyContext
-        -- Possibly we need to do auth here
     in serveWithContext serverApi cfg (initServer serverConfig) request respond
 
 initServer :: ServerConfig -> Server FullApi

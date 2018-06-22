@@ -13,14 +13,12 @@ module Examples.SimpleUser.Server
   ( runUserService
   ) where
 
-import Control.Monad
 import Control.Monad.IO.Class
 import Control.Monad.Trans.Maybe
 import qualified Data.Aeson as Aeson
 import qualified Data.ByteString.Char8 as Char8
 import qualified Data.CaseInsensitive as CI
 import Data.List hiding (delete)
-import Data.Maybe
 import Data.Proxy
 import qualified Data.Text as T
 import Data.Time.Clock
@@ -30,9 +28,8 @@ import Servant
 import qualified Servant.Auth.Server as ServantAuth
 import qualified Web.Cookie as Cookie
 
-import DBEntity
-import qualified Examples.SimpleUser.DB as DB
-import Examples.SimpleUser.DBBridge
+import DataProvider
+import qualified Examples.SimpleUser.DataSource as DS
 import Examples.SimpleUser.Model
 import Model
 import Permissions
@@ -179,11 +176,9 @@ login ::
   -> LoginBody
   -> Handler LoginView
 login cookieSettings jwtSettings (LoginBody name password) = do
-  dbUsers <- getAllFromDBWithRels (Proxy :: Proxy DB.User)
+  users <- loadAll (Proxy :: Proxy User)
   resp <-
     runMaybeT $ do
-      let users =
-            map (\(model, rels) -> dbConvertFrom model (Just rels)) dbUsers
       user <- MaybeT . return . find byNameAndPassword $ users
       let accept = ServantAuth.acceptLogin cookieSettings jwtSettings user
       mApplyCookies <- MaybeT . return <$> liftIO accept

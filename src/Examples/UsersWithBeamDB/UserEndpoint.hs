@@ -11,7 +11,6 @@
 
 module Examples.UsersWithBeamDB.UserEndpoint where
 
-import Control.Monad.IO.Class
 import qualified Data.Aeson as Aeson
 import Data.Proxy
 import qualified Data.Text as T
@@ -20,12 +19,10 @@ import GHC.Generics
 import Servant
 import Servant.Auth.Server
 
-import DBEntity
-import qualified Examples.UsersWithBeamDB.DBEntity as DB
+import Examples.UsersWithBeamDB.DataSource
 import Examples.UsersWithBeamDB.Model
 import Examples.UsersWithBeamDB.ServerConfig
 import Model
-import Permissions
 import Resource
 import Routing
 import Serializables
@@ -117,12 +114,6 @@ instance HasCreateMethod User where
                            deriving (Generic, Aeson.FromJSON)
   data CreateActionView User = CreateUserView UserView
                            deriving (Generic, Aeson.ToJSON)
-  create body = do
-    model <- liftIO $ deserialize Nothing body
-    (newDbModel, newAuthModel) <- runDB $ DB.saveUserFromModel model
-    let newModel = dbConvertFrom newDbModel (Just newAuthModel)
-    let view = serialize newModel
-    pure view
 
 instance HasUpdateMethod User where
   data UpdateActionBody User = UpdateUserBody UserBody

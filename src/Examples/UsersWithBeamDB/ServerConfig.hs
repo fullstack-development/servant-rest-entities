@@ -11,14 +11,15 @@ module Examples.UsersWithBeamDB.ServerConfig where
 import Control.Monad.Catch hiding (Handler)
 import Control.Monad.Except
 import Control.Monad.Reader
-import DBEntity
 import Database.Beam.Postgres (Pg)
 import Servant
 import Servant.Auth.Server
 
+import DataProvider
+
 data ServerConfig = ServerConfig
   { port :: Int
-  , withDbConn :: forall a. Pg a -> IO a
+  , withDSConn :: forall a. Pg a -> IO a
   , jwtSettings :: JWTSettings
   , cookieSettings :: CookieSettings
   }
@@ -35,7 +36,7 @@ newtype ServerConfigReader a = ServerConfigReader
              , MonadCatch
              )
 
-instance HasDbRun ServerConfigReader Pg where
-  runDB action = do
-    withConn <- asks withDbConn
+instance HasDataSourceRun ServerConfigReader Pg where
+  runDS action = do
+    withConn <- asks withDSConn
     liftIO $ withConn action

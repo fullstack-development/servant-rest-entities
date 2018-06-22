@@ -8,8 +8,10 @@ module WebActions.Retrieve where
 
 import Control.Monad
 import Control.Monad.Except
-import DBEntity
+import Data.Maybe
 import GHC.Generics
+
+import DataProvider
 import Permissions
 import Serializables
 import Servant
@@ -17,10 +19,10 @@ import Servant.Auth.Server
 
 class ( Generic e
       , Serializable e (RetrieveActionView e)
-      , DBConvertable e (DBModel e)
-      , Monad (MonadDB (DBModel e))
-      , MonadIO (MonadDB (DBModel e))
-      , MonadError ServantErr (MonadDB (DBModel e))
+      , HasDataProvider e (DataProviderModel e)
+      , Monad (MonadDataProvider e)
+      , MonadIO (MonadDataProvider e)
+      , MonadError ServantErr (MonadDataProvider e)
       ) =>
       HasRetrieveMethod e
   | e -> e
@@ -30,28 +32,25 @@ class ( Generic e
   retrieve' ::
        AuthResult (Requester e)
     -> Int
-    -> MonadDB (DBModel e) (RetrieveActionView e)
+    -> MonadDataProvider e (RetrieveActionView e)
   retrieve' (Authenticated requester) pk = do
-    Just (dbModel, dbRels) <-
-      getByIdWithRelsFromDB (Proxy :: Proxy (DBModel e)) pk
-    isAccessAllowed <- checkAccessPermission (Just requester) (Proxy :: Proxy e)
+    isAccessAllowed <- checkAccessPermission (Proxy :: Proxy e) (Just requester)
     unless isAccessAllowed (throwError err403)
-    let model = dbConvertFrom dbModel (Just dbRels)
-    isEntityAllowed <- checkEntityPermission (Just requester) model
+    mbEntity <- loadById (Proxy :: Proxy e) pk
+    when (isNothing mbEntity) (throwError err404)
+    let entity = fromJust mbEntity
+    isEntityAllowed <- checkEntityPermission (Just requester) entity
     unless isEntityAllowed (throwError err403)
-    pure (serialize model :: RetrieveActionView e)
+    pure (serialize entity :: RetrieveActionView e)
   retrieve' _ _ = throwError err401
-  retrieve :: Int -> MonadDB (DBModel e) (RetrieveActionView e)
+  retrieve :: Int -> MonadDataProvider e (RetrieveActionView e)
   retrieve pk = do
-    Just (dbModel, dbRels) <-
-      getByIdWithRelsFromDB (Proxy :: Proxy (DBModel e)) pk
-    isAccessAllowed <- checkAccessPermission Nothing (Proxy :: Proxy e)
-    unless isAccessAllowed (throwError err403)
-    let model = dbConvertFrom dbModel (Just dbRels)
-    isEntityAllowed <- checkEntityPermission Nothing model
-    unless isEntityAllowed (throwError err403)
-    pure (serialize model :: RetrieveActionView e)
-  checkAccessPermission :: AccessPermissionCheck e (Requester e)
+    mbEntity <- loadById (Proxy :: Proxy e) pk
+    when (isNothing mbEntity) (throwError err404)
+    pure (serialize (fromJust mbEntity) :: RetrieveActionView e)
+  checkAccessPermission ::
+       AccessPermissionCheck (Requester e) (MonadDataProvider e) e
   checkAccessPermission _ _ = return True
-  checkEntityPermission :: EntityPermissionCheck e (Requester e)
+  checkEntityPermission ::
+       EntityPermissionCheck (Requester e) (MonadDataProvider e) e
   checkEntityPermission _ _ = return True

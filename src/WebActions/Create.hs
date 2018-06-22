@@ -11,16 +11,16 @@ import Control.Monad.Except
 import GHC.Generics
 import Servant
 
-import DBEntity
+import DataProvider
 import Permissions
 import Serializables
 
 class ( Generic e
       , Deserializable e (CreateActionBody e)
       , Serializable e (CreateActionView e)
-      , DBConvertable e (DBModel e)
-      , MonadIO (MonadDB (DBModel e))
-      , MonadError ServantErr (MonadDB (DBModel e))
+      , HasDataProvider e (DataProviderModel e)
+      , MonadIO (MonadDataProvider e)
+      , MonadError ServantErr (MonadDataProvider e)
       ) =>
       HasCreateMethod e
   | e -> e
@@ -28,15 +28,11 @@ class ( Generic e
   type Requester e
   data CreateActionBody e
   data CreateActionView e
-  create :: CreateActionBody e -> MonadDB (DBModel e) (CreateActionView e)
+  create :: CreateActionBody e -> MonadDataProvider e (CreateActionView e)
   create body = do
-    isAccessAllowed <- checkAccessPermission Nothing (Proxy :: Proxy e)
-    unless isAccessAllowed (throwError err401)
     model <- liftIO $ deserialize Nothing body
-    let (dbModel, dbRels) = dbConvertTo model Nothing
-    newDbModel <- save dbModel
-    let newModel = dbConvertFrom newDbModel Nothing
-    let view = serialize newModel
-    pure view
-  checkAccessPermission :: AccessPermissionCheck e (Requester e)
+    created <- save model
+    pure . serialize $ created
+  checkAccessPermission ::
+       AccessPermissionCheck (Requester e) (MonadDataProvider e) e
   checkAccessPermission _ _ = return True
