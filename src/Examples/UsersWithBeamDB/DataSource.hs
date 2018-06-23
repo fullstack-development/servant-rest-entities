@@ -94,14 +94,14 @@ instance HasDataProvider User where
           userIsStaff
           (DB.AuthId $ fromId $ authId userAuth)
       dpAuth = pack userAuth user
-  unpack DB.User {..} (auth, _) =
+  unpack DB.User {..} relations =
     User
       (Id _userId)
       _userFirstName
       _userLastName
       _userCreatedAt
       _userIsStaff
-      (unpack auth ())
+      (uncurry unpack relations)
 
 instance HasDataProvider Auth where
   type DataProviderModel Auth = DB.Auth

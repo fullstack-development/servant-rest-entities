@@ -197,7 +197,7 @@ instance HasDataProvider Model.Auth where
   loadById _ pk =
     pure $ flip unpack () <$> find (\a -> fromPK (authId a) == pk) auths
   loadAll _ = pure $ flip unpack () <$> auths
-  pack Model.Auth {..} user = (dbAuth, undefined)
+  pack Model.Auth {..} user = (dbAuth, ())
     where
       dbAuth =
         Auth
@@ -242,7 +242,7 @@ instance HasDataProvider Model.RichPost where
     , Model.postTitle = fromColumn blogPostTitle
     , Model.postAuthors = map (uncurry unpack) authors
     }
-  pack Model.BlogPost {..} _ = (dpPost, dpAuthors)
+  pack Model.BlogPost {..} rels = (dpPost, dpAuthors)
     where
       dpPost =
         BlogPost
@@ -250,7 +250,7 @@ instance HasDataProvider Model.RichPost where
         , blogPostText = Column postText
         , blogPostTitle = Column postTitle
         }
-      dpAuthors = flip pack () <$> postAuthors
+      dpAuthors = flip pack rels <$> postAuthors
 
 instance HasDataProvider Model.LightAuthor where
   type DataProviderModel Model.LightAuthor = Author
