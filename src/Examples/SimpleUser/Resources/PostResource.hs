@@ -8,7 +8,9 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE RecordWildCards #-}
 
-module Examples.SimpleUser.Resources.PostResource where
+module Examples.SimpleUser.Resources.PostResource
+  (
+  ) where
 
 import qualified Data.Aeson as Aeson
 import qualified Data.Text as T

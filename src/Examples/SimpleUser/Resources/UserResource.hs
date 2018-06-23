@@ -8,7 +8,9 @@
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
-module Examples.SimpleUser.Resources.UserResource where
+module Examples.SimpleUser.Resources.UserResource
+  (
+  ) where
 
 import qualified Data.Aeson as Aeson
 import qualified Data.Text as T

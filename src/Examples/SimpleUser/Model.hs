@@ -1,7 +1,16 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DeriveAnyClass #-}
 
-module Examples.SimpleUser.Model where
+module Examples.SimpleUser.Model
+  ( User(..)
+  , Auth(..)
+  , BlogPost(..)
+  , Author(..)
+  , RichAuthor
+  , RichPost
+  , LightAuthor
+  , LightPost
+  ) where
 
 import Data.Aeson
 import qualified Data.Text as T
@@ -38,10 +47,10 @@ data Author posts = Author
   , authorPosts :: posts
   } deriving (Generic)
 
-type AuthorWithPosts = Author [NotRichPost]
+type RichAuthor = Author [LightPost]
 
 type RichPost = BlogPost [LightAuthor]
 
 type LightAuthor = Author NotRich
 
-type NotRichPost = BlogPost NotRich
+type LightPost = BlogPost NotRich

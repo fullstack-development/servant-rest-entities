@@ -6,7 +6,9 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE TupleSections #-}
 
-module Examples.SimpleUser.DataSource where
+module Examples.SimpleUser.DataSource
+  (
+  ) where
 
 import Control.Monad.Trans.Maybe
 import Data.List
@@ -264,8 +266,8 @@ instance HasDataProvider Model.LightAuthor where
     , authorPosts = Model.Unfilled
     }
 
-instance HasDataProvider Model.AuthorWithPosts where
-  type DataProviderModel Model.AuthorWithPosts = Author
-  type ParentRelations Model.AuthorWithPosts = ()
-  type ChildRelations Model.AuthorWithPosts = [Model.NotRichPost]
-  type MonadDataProvider Model.AuthorWithPosts = Handler
+instance HasDataProvider Model.RichAuthor where
+  type DataProviderModel Model.RichAuthor = Author
+  type ParentRelations Model.RichAuthor = ()
+  type ChildRelations Model.RichAuthor = [Model.LightPost]
+  type MonadDataProvider Model.RichAuthor = Handler
