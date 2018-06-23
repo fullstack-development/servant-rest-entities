@@ -13,6 +13,7 @@ module Examples.SimpleUser.DataSource
 import Control.Monad.Trans.Maybe
 import Data.List
 import Data.Maybe
+import Data.Maybe
 import qualified Data.Text as T
 import Data.Time
 import Data.Tuple
@@ -224,6 +225,11 @@ instance HasDataProvider Model.RichPost where
   type ParentRelations Model.RichPost = ()
   type ChildRelations Model.RichPost = [Model.LightAuthor]
   type MonadDataProvider Model.RichPost = Handler
+  save = pure
+  deleteById _ _ = pure $ Right ()
+  loadAll _ =
+    catMaybes <$>
+    mapM (loadById (Proxy :: Proxy Model.RichPost) . fromPK . blogPostId) posts
   loadById _ pk =
     runMaybeT $ do
       post <- MaybeT . return . find ((== pk) . fromPK . blogPostId) $ posts
