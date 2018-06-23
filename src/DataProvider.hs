@@ -43,21 +43,22 @@ type family MapDataProviders e where
                                            , MapDataProviders e
                                            , MapDataProviders h
                                            , MapDataProviders g)
+  MapDataProviders [e] = [DataProviderModel e]
   MapDataProviders e = DataProviderModel e
+
+type family PackingResult model where
+  PackingResult () = ()
+  PackingResult [model] = [PackingResult model]
+  PackingResult model = ( DataProviderModel model
+                        , PackingResult (DataProviderModel (ChildRelations model)))
 
 class HasDataProvider model where
   type DataProviderModel model
   type MonadDataProvider model :: * -> *
   type ChildRelations model
   type ParentRelations model
-  unpack ::
-       DataProviderModel model
-    -> Maybe (MapDataProviders (ChildRelations model))
-    -> model
-  pack ::
-       model
-    -> Maybe (ParentRelations model)
-    -> (DataProviderModel model, MapDataProviders (ChildRelations model))
+  unpack :: DataProviderModel model -> Maybe (ChildRelations model) -> model
+  pack :: model -> Maybe (ParentRelations model) -> PackingResult model
   save :: model -> MonadDataProvider model model
   loadById :: Proxy model -> Int -> MonadDataProvider model (Maybe model)
   loadAll :: Proxy model -> MonadDataProvider model [model]

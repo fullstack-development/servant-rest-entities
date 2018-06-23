@@ -24,3 +24,16 @@ data Auth = Auth
   , authPassword :: T.Text
   , authCreatedAt :: UTCTime
   } deriving (Show, Eq, Generic, FromJSON, ToJSON)
+
+data BlogPost = BlogPost
+  { postId :: Id Int
+  , postText :: T.Text
+  , postTitle :: T.Text
+  , postAuthors :: [Author]
+  }
+
+data Author = Author
+  { authorId :: Id Int
+  , authorPseudonim :: T.Text
+  , authorPosts :: [BlogPost]
+  }
