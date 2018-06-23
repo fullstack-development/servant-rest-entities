@@ -18,7 +18,7 @@ import Servant.Auth.Server
 import Examples.UsersWithBeamDB.Model
 import Examples.UsersWithBeamDB.RunDB
 import Examples.UsersWithBeamDB.ServerConfig
-import Examples.UsersWithBeamDB.UserEndpoint
+import Examples.UsersWithBeamDB.UserEndpoint ()
 import Resource
 
 type FullApi = Api User

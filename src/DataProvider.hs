@@ -3,7 +3,6 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE ConstraintKinds #-}
-{-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE TypeOperators #-}
@@ -50,15 +49,16 @@ type family PackingResult model where
   PackingResult () = ()
   PackingResult [model] = [PackingResult model]
   PackingResult model = ( DataProviderModel model
-                        , PackingResult (DataProviderModel (ChildRelations model)))
+                        , PackingResult (ChildRelations model))
 
 class HasDataProvider model where
   type DataProviderModel model
   type MonadDataProvider model :: * -> *
   type ChildRelations model
   type ParentRelations model
-  unpack :: DataProviderModel model -> Maybe (ChildRelations model) -> model
-  pack :: model -> Maybe (ParentRelations model) -> PackingResult model
+  unpack ::
+       DataProviderModel model -> PackingResult (ChildRelations model) -> model
+  pack :: model -> ParentRelations model -> PackingResult model
   save :: model -> MonadDataProvider model model
   loadById :: Proxy model -> Int -> MonadDataProvider model (Maybe model)
   loadAll :: Proxy model -> MonadDataProvider model [model]

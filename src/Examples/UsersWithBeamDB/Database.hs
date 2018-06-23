@@ -15,7 +15,6 @@ import Data.Time
 import GHC.Generics (Generic)
 
 import Database.Beam
-import Database.Beam.Backend.SQL.Types (SqlSerial)
 import Database.Beam.Postgres
 
 -- === MODELS ===

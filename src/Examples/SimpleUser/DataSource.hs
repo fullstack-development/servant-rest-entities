@@ -2,6 +2,9 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE TupleSections #-}
 
 module Examples.SimpleUser.DataSource where
 
@@ -10,6 +13,7 @@ import Data.List
 import Data.Maybe
 import qualified Data.Text as T
 import Data.Time
+import Data.Tuple
 import Servant
 
 import DataProvider
@@ -72,34 +76,34 @@ time = getCurrentTime
 
 users =
   [ User
-      { userId = PrimaryKey 1
-      , userFirstName = Column "Nikita"
-      , userLastName = Column "Razmakhnin"
-      , userIsStaff = Column False
-      , userCreatedAt = Column $ UTCTime (ModifiedJulianDay 0) 0
-      }
+    { userId = PrimaryKey 1
+    , userFirstName = Column "Nikita"
+    , userLastName = Column "Razmakhnin"
+    , userIsStaff = Column False
+    , userCreatedAt = Column $ UTCTime (ModifiedJulianDay 0) 0
+    }
   , User
-      { userId = PrimaryKey 2
-      , userFirstName = Column "Sergey"
-      , userLastName = Column "Cherepanov"
-      , userIsStaff = Column True
-      , userCreatedAt = Column $ UTCTime (ModifiedJulianDay 0) 0
-      }
+    { userId = PrimaryKey 2
+    , userFirstName = Column "Sergey"
+    , userLastName = Column "Cherepanov"
+    , userIsStaff = Column True
+    , userCreatedAt = Column $ UTCTime (ModifiedJulianDay 0) 0
+    }
   ]
 
 auths =
   [ Auth
-      { authId = PrimaryKey 1
-      , authPassword = Column "test test"
-      , authCreatedAt = Column $ UTCTime (ModifiedJulianDay 0) 0
-      , authUserId = ForeignKey (PrimaryKey 1)
-      }
+    { authId = PrimaryKey 1
+    , authPassword = Column "test test"
+    , authCreatedAt = Column $ UTCTime (ModifiedJulianDay 0) 0
+    , authUserId = ForeignKey (PrimaryKey 1)
+    }
   , Auth
-      { authId = PrimaryKey 2
-      , authPassword = Column "test test"
-      , authCreatedAt = Column $ UTCTime (ModifiedJulianDay 0) 0
-      , authUserId = ForeignKey (PrimaryKey 2)
-      }
+    { authId = PrimaryKey 2
+    , authPassword = Column "test test"
+    , authCreatedAt = Column $ UTCTime (ModifiedJulianDay 0) 0
+    , authUserId = ForeignKey (PrimaryKey 2)
+    }
   ]
 
 authors =
@@ -111,15 +115,15 @@ authors =
 
 posts =
   [ BlogPost
-      { blogPostId = PrimaryKey 1
-      , blogPostText = Column "Text blog post with test content 1"
-      , blogPostTitle = Column "Test blog post 1"
-      }
+    { blogPostId = PrimaryKey 1
+    , blogPostText = Column "Text blog post with test content 1"
+    , blogPostTitle = Column "Test blog post 1"
+    }
   , BlogPost
-      { blogPostId = PrimaryKey 2
-      , blogPostText = Column "Text blog post with test content 2"
-      , blogPostTitle = Column "Test blog post 2"
-      }
+    { blogPostId = PrimaryKey 2
+    , blogPostText = Column "Text blog post with test content 2"
+    , blogPostTitle = Column "Test blog post 2"
+    }
   ]
 
 postsAuthors
@@ -155,36 +159,33 @@ instance HasDataProvider Model.User where
     runMaybeT $ do
       user <- wrap $ find (\u -> fromPK (userId u) == pk) users
       auth <- wrap $ find (\a -> fromFK (authUserId a) == userId user) auths
-      let authModel = unpack auth (Just ())
-      return $ unpack user (Just authModel)
+      return $ unpack user (auth, ())
     where
       wrap = MaybeT . return
-  loadAll _ = pure $ map (\u -> unpack u (authFor u)) users
+  loadAll _ = pure $ map (\user -> unpack user (authFor user, ())) users
     where
-      authFor user =
-        flip unpack (Just ()) <$> find (authByUserId $ userId user) auths
+      authFor user = fromJust $ find (authByUserId $ userId user) auths
       authByUserId id auth = fromFK (authUserId auth) == id
-  unpack User {..} (Just auth) =
+  unpack User {..} (auth, _) =
     Model.User
-      { userId = Model.Id $ fromPK userId
-      , userFirstName = fromColumn userFirstName
-      , userLastName = fromColumn userLastName
-      , userIsStaff = fromColumn userIsStaff
-      , userCreatedAt = fromColumn userCreatedAt
-      , userAuth = auth
-      }
-  unpack _ Nothing = error "You should pass all relations to user db converter."
+    { userId = Model.Id $ fromPK userId
+    , userFirstName = fromColumn userFirstName
+    , userLastName = fromColumn userLastName
+    , userIsStaff = fromColumn userIsStaff
+    , userCreatedAt = fromColumn userCreatedAt
+    , userAuth = unpack auth ()
+    }
   pack user@Model.User {..} _ = (providedUser, undefined)
     where
-      auth = pack userAuth (Just user)
+      auth = pack userAuth user
       providedUser =
         User
-          { userId = PrimaryKey (Model.fromId userId)
-          , userFirstName = Column userFirstName
-          , userLastName = Column userLastName
-          , userCreatedAt = Column userCreatedAt
-          , userIsStaff = Column userIsStaff
-          }
+        { userId = PrimaryKey (Model.fromId userId)
+        , userFirstName = Column userFirstName
+        , userLastName = Column userLastName
+        , userCreatedAt = Column userCreatedAt
+        , userIsStaff = Column userIsStaff
+        }
 
 instance HasDataProvider Model.Auth where
   type DataProviderModel Model.Auth = Auth
@@ -194,52 +195,77 @@ instance HasDataProvider Model.Auth where
   save = pure
   deleteById _ _ = pure $ Right ()
   loadById _ pk =
-    pure $ flip unpack Nothing <$> find (\a -> fromPK (authId a) == pk) auths
-  loadAll _ = pure $ flip unpack Nothing <$> auths
-  pack Model.Auth {..} (Just user) = (dbAuth, undefined)
+    pure $ flip unpack () <$> find (\a -> fromPK (authId a) == pk) auths
+  loadAll _ = pure $ flip unpack () <$> auths
+  pack Model.Auth {..} user = (dbAuth, undefined)
     where
       dbAuth =
         Auth
-          { authId =
-              if Model.isIdEmpty authId
-                then def
-                else PrimaryKey (Model.fromId authId)
-          , authPassword = Column authPassword
-          , authCreatedAt = Column authCreatedAt
-          , authUserId =
-              ForeignKey (PrimaryKey (Model.fromId $ Model.userId user))
-          }
+        { authId =
+            if Model.isIdEmpty authId
+              then def
+              else PrimaryKey (Model.fromId authId)
+        , authPassword = Column authPassword
+        , authCreatedAt = Column authCreatedAt
+        , authUserId =
+            ForeignKey (PrimaryKey (Model.fromId $ Model.userId user))
+        }
   unpack Auth {..} _ =
     Model.Auth
-      { authId = Model.Id $ fromPK authId
-      , authPassword = fromColumn authPassword
-      , authCreatedAt = fromColumn authCreatedAt
-      }
+    { authId = Model.Id $ fromPK authId
+    , authPassword = fromColumn authPassword
+    , authCreatedAt = fromColumn authCreatedAt
+    }
 
-instance HasDataProvider Model.BlogPost where
-  type DataProviderModel Model.BlogPost = BlogPost
-  type ParentRelations Model.BlogPost = ()
-  type ChildRelations Model.BlogPost = [Model.Author]
-  type MonadDataProvider Model.BlogPost = Handler
-  unpack dpPost@BlogPost {..} (Just authors) =
+instance HasDataProvider Model.RichPost where
+  type DataProviderModel Model.RichPost = BlogPost
+  type ParentRelations Model.RichPost = ()
+  type ChildRelations Model.RichPost = [Model.LightAuthor]
+  type MonadDataProvider Model.RichPost = Handler
+  loadById _ pk =
+    runMaybeT $ do
+      post <- MaybeT . return $ find (\p -> fromPK (blogPostId p) == pk) posts
+      let relations = map (swap . ((), )) . filter (existsRel post) $ authors
+      return $ unpack post relations
+    where
+      existsRel BlogPost {..} Author {..} =
+        isJust $
+        find
+          (\AuthorBlogPost {..} ->
+             blogPostId == fromFK authorBlogPostPostId &&
+             authorId == fromFK authorBlogPostAuthorId)
+          postsAuthors
+  unpack BlogPost {..} authors =
     Model.BlogPost
-      { Model.postId = Model.Id $ fromPK blogPostId
-      , Model.postText = fromColumn blogPostText
-      , Model.postTitle = fromColumn blogPostTitle
-      , Model.postAuthors = authors
-      }
-  pack post@Model.BlogPost {..} _ = (dpPost, undefined)
+    { Model.postId = Model.Id $ fromPK blogPostId
+    , Model.postText = fromColumn blogPostText
+    , Model.postTitle = fromColumn blogPostTitle
+    , Model.postAuthors = map (uncurry unpack) authors
+    }
+  pack Model.BlogPost {..} _ = (dpPost, dpAuthors)
     where
       dpPost =
         BlogPost
-          { blogPostId = PrimaryKey $ Model.fromId postId
-          , blogPostText = Column postText
-          , blogPostTitle = Column postTitle
-          }
-      dpAuthors = map (flip pack (Just ())) postAuthors
+        { blogPostId = PrimaryKey $ Model.fromId postId
+        , blogPostText = Column postText
+        , blogPostTitle = Column postTitle
+        }
+      dpAuthors = flip pack () <$> postAuthors
 
-instance HasDataProvider Model.Author where
-  type DataProviderModel Model.Author = Author
-  type ParentRelations Model.Author = ()
-  type ChildRelations Model.Author = [Model.BlogPost]
-  type MonadDataProvider Model.Author = Handler
+instance HasDataProvider Model.LightAuthor where
+  type DataProviderModel Model.LightAuthor = Author
+  type ChildRelations Model.LightAuthor = ()
+  type ParentRelations Model.LightAuthor = ()
+  type MonadDataProvider Model.LightAuthor = Handler
+  unpack Author {..} _ =
+    Model.Author
+    { Model.authorId = Model.Id $ fromPK authorId
+    , Model.authorPseudonim = fromColumn authorPseudonim
+    , authorPosts = Model.Unfilled
+    }
+
+instance HasDataProvider Model.AuthorWithPosts where
+  type DataProviderModel Model.AuthorWithPosts = Author
+  type ParentRelations Model.AuthorWithPosts = ()
+  type ChildRelations Model.AuthorWithPosts = [Model.NotRichPost]
+  type MonadDataProvider Model.AuthorWithPosts = Handler

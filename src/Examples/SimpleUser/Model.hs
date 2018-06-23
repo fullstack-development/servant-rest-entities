@@ -25,15 +25,23 @@ data Auth = Auth
   , authCreatedAt :: UTCTime
   } deriving (Show, Eq, Generic, FromJSON, ToJSON)
 
-data BlogPost = BlogPost
+data BlogPost authors = BlogPost
   { postId :: Id Int
   , postText :: T.Text
   , postTitle :: T.Text
-  , postAuthors :: [Author]
-  }
+  , postAuthors :: authors
+  } deriving (Generic)
 
-data Author = Author
+data Author posts = Author
   { authorId :: Id Int
   , authorPseudonim :: T.Text
-  , authorPosts :: [BlogPost]
-  }
+  , authorPosts :: posts
+  } deriving (Generic)
+
+type AuthorWithPosts = Author [NotRichPost]
+
+type RichPost = BlogPost [LightAuthor]
+
+type LightAuthor = Author NotRich
+
+type NotRichPost = BlogPost NotRich

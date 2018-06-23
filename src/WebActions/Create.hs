@@ -6,7 +6,6 @@
 
 module WebActions.Create where
 
-import Control.Monad
 import Control.Monad.Except
 import GHC.Generics
 import Servant

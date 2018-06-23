@@ -29,32 +29,25 @@ import qualified Servant.Auth.Server as ServantAuth
 import qualified Web.Cookie as Cookie
 
 import DataProvider
-import qualified Examples.SimpleUser.DataSource as DS
 import Examples.SimpleUser.Model
-import Examples.SimpleUser.Resources.UserResource
-import Model
-import Permissions
+import Examples.SimpleUser.Resources.PostResource ()
+import Examples.SimpleUser.Resources.UserResource ()
 import Resource
-import Routing
-import Serializables
-import WebActions.Create
-import WebActions.Delete
-import WebActions.List
-import WebActions.Retrieve
-import WebActions.Update
 
 newtype LoginView = LoginView
   { token :: String
   } deriving (Generic, Aeson.FromJSON, Aeson.ToJSON)
 
-fullApi cs jwts = server (Proxy :: Proxy User) :<|> login cs jwts
+fullApi cs jwts =
+  server (Proxy :: Proxy User) :<|> login cs jwts :<|>
+  server (Proxy :: Proxy RichPost)
 
 type LoginAPI = "login" :> ReqBody '[ JSON] LoginBody :> Post '[ JSON] LoginView
 
 type LoginResponse r
    = Headers '[ Header "Set-Cookie" ServantAuth.SetCookie, Header "Set-Cookie" ServantAuth.SetCookie] r
 
-type FullApi = Api User :<|> LoginAPI
+type FullApi = Api User :<|> LoginAPI :<|> Api RichPost
 
 routes :: Proxy FullApi
 routes = Proxy
@@ -65,7 +58,7 @@ mkApp jwtSecret = do
   let authExpiresIn = addUTCTime authDuration time
   let cookieCfg =
         ServantAuth.defaultCookieSettings
-          {ServantAuth.cookieExpires = Just authExpiresIn}
+        {ServantAuth.cookieExpires = Just authExpiresIn}
   let jwtCfg = ServantAuth.defaultJWTSettings jwtSecret
   let cfg = cookieCfg :. jwtCfg :. EmptyContext
   return $ serveWithContext routes cfg (fullApi cookieCfg jwtCfg)

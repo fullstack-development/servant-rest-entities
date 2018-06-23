@@ -7,10 +7,8 @@
 
 module Examples.UsersWithBeamDB.DataSource where
 
-import qualified Data.List as L
 import Database.Beam
 import qualified Database.Beam.Backend.SQL.BeamExtensions as BeamExtensions
-import Database.Beam.Backend.SQL.Types (unSerial)
 import Database.Beam.Postgres
 import Database.Beam.Postgres.Syntax
 
@@ -75,36 +73,35 @@ instance HasDataProvider User where
   type ChildRelations User = Auth
   type ParentRelations User = ()
   loadAll _ =
-    map (\(user, auth) -> unpack user (Just auth)) <$> runDS selectUsersWithAuth
+    map (\(user, auth) -> unpack user (auth, ())) <$> runDS selectUsersWithAuth
   save user = do
     (savedUser, savedAuth) <- runDS . saveUserFromModel $ user
-    return $ unpack savedUser (Just savedAuth)
+    return $ unpack savedUser (savedAuth, ())
   deleteById _ = runDS . deleteUserFromDB
   loadById _ pk = do
     result <- runDS . getUserByIdWithAuth $ pk
     let entity =
-          maybe Nothing (\(user, auth) -> Just $ unpack user (Just auth)) result
+          maybe Nothing (\(user, auth) -> Just $ unpack user (auth, ())) result
     return entity
-  pack User {..} _ =
-    ( DB.User
-        (fromId userId)
-        userFirstName
-        userLastName
-        userCreatedAt
-        userIsStaff
-        (DB.AuthId $ fromId $ authId userAuth)
-    , DB.Auth
-        (fromId $ authId userAuth)
-        (authPassword userAuth)
-        (authCreatedAt userAuth))
-  unpack DB.User {..} (Just auth) =
+  pack user@User {..} _ = (dpUser, dpAuth)
+    where
+      dpUser =
+        DB.User
+          (fromId userId)
+          userFirstName
+          userLastName
+          userCreatedAt
+          userIsStaff
+          (DB.AuthId $ fromId $ authId userAuth)
+      dpAuth = pack userAuth user
+  unpack DB.User {..} (auth, _) =
     User
       (Id _userId)
       _userFirstName
       _userLastName
       _userCreatedAt
       _userIsStaff
-      (unpack auth Nothing)
+      (unpack auth ())
 
 instance HasDataProvider Auth where
   type DataProviderModel Auth = DB.Auth

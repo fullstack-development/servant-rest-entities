@@ -19,7 +19,7 @@ import GHC.Generics
 import Servant
 import Servant.Auth.Server
 
-import Examples.UsersWithBeamDB.DataSource
+import Examples.UsersWithBeamDB.DataSource ()
 import Examples.UsersWithBeamDB.Model
 import Examples.UsersWithBeamDB.ServerConfig
 import Model
