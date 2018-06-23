@@ -195,8 +195,8 @@ instance HasDataProvider Model.Auth where
   save = pure
   deleteById _ _ = pure $ Right ()
   loadById _ pk =
-    pure $ flip unpack () <$> find (\a -> fromPK (authId a) == pk) auths
-  loadAll _ = pure $ flip unpack () <$> auths
+    pure $ (`unpack` ()) <$> find ((== pk) . fromPK . authId) auths
+  loadAll _ = pure $ (`unpack` ()) <$> auths
   pack Model.Auth {..} user = (dbAuth, ())
     where
       dbAuth =
@@ -224,7 +224,7 @@ instance HasDataProvider Model.RichPost where
   type MonadDataProvider Model.RichPost = Handler
   loadById _ pk =
     runMaybeT $ do
-      post <- MaybeT . return $ find (\p -> fromPK (blogPostId p) == pk) posts
+      post <- MaybeT . return . find ((== pk) . fromPK . blogPostId) $ posts
       let relations = map (swap . ((), )) . filter (existsRel post) $ authors
       return $ unpack post relations
     where
@@ -250,7 +250,7 @@ instance HasDataProvider Model.RichPost where
         , blogPostText = Column postText
         , blogPostTitle = Column postTitle
         }
-      dpAuthors = flip pack rels <$> postAuthors
+      dpAuthors = (`pack` rels) <$> postAuthors
 
 instance HasDataProvider Model.LightAuthor where
   type DataProviderModel Model.LightAuthor = Author
