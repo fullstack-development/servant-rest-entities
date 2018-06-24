@@ -87,5 +87,16 @@ class HasDataSourceRun (actionMonad :: * -> *) (dsMonad :: * -> *) where
 
 class DataProvider dp where
   type DataProviderTypeClass dp :: * -> Constraint
+  type CreateDataStructure dp :: * -> *
   getAllEntities ::
        (DataProviderTypeClass dp dbmodel) => Proxy dbmodel -> dp [dbmodel]
+  getEntityById ::
+       (DataProviderTypeClass dp dbmodel)
+    => Proxy dbmodel
+    -> Int
+    -> dp (Maybe dbmodel)
+  createEntity ::
+       (DataProviderTypeClass dp dbmodel)
+    => Proxy dbmodel
+    -> CreateDataStructure dp dbmodel
+    -> dp (Maybe dbmodel)

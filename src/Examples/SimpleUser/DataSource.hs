@@ -7,7 +7,6 @@ module Examples.SimpleUser.DataSource where
 
 import Control.Monad.Trans.Maybe
 import Data.List
-import Data.Maybe
 import qualified Data.Text as T
 import Data.Time
 import Servant

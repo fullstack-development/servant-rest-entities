@@ -19,7 +19,7 @@ import GHC.Generics
 import Servant
 import Servant.Auth.Server
 
-import Examples.UsersWithBeamDB.DataSource
+import Examples.UsersWithBeamDB.DataSource ()
 import Examples.UsersWithBeamDB.Model
 import Examples.UsersWithBeamDB.ServerConfig
 import Model
@@ -55,36 +55,36 @@ data UserBody = UserBody
 
 serializeAuthBody Auth {..} =
   AuthView
-  { authViewId = fromId authId
-  , authViewPassword = authPassword
-  , authViewCreatedAt = authCreatedAt
-  }
+    { authViewId = fromId authId
+    , authViewPassword = authPassword
+    , authViewCreatedAt = authCreatedAt
+    }
 
 deserializeUserBody Nothing UserBody {..} = do
   time <- getCurrentTime
   return
     User
-    { userId = Empty
-    , userAuth =
-        Auth
-        { authId = Empty
-        , authPassword = userBodyPassword
-        , authCreatedAt = utcToLocalTime (minutesToTimeZone 0) time
-        }
-    , userFirstName = userBodyFirstName
-    , userLastName = userBodyLastName
-    , userIsStaff = userBodyIsStaff
-    , userCreatedAt = utcToLocalTime (minutesToTimeZone 0) time
-    }
+      { userId = Empty
+      , userAuth =
+          Auth
+            { authId = Empty
+            , authPassword = userBodyPassword
+            , authCreatedAt = utcToLocalTime (minutesToTimeZone 0) time
+            }
+      , userFirstName = userBodyFirstName
+      , userLastName = userBodyLastName
+      , userIsStaff = userBodyIsStaff
+      , userCreatedAt = utcToLocalTime (minutesToTimeZone 0) time
+      }
 
 serializeUserBody User {..} =
   UserView
-  { userViewId = fromId userId
-  , userViewFirstName = userFirstName
-  , userViewLastName = userLastName
-  , userViewIsStaff = userIsStaff
-  , userViewAuth = serializeAuthBody userAuth
-  }
+    { userViewId = fromId userId
+    , userViewFirstName = userFirstName
+    , userViewLastName = userLastName
+    , userViewIsStaff = userIsStaff
+    , userViewAuth = serializeAuthBody userAuth
+    }
 
 instance ToJWT User
 
@@ -111,26 +111,26 @@ instance Serializable User (RetrieveActionView User) where
 instance HasCreateMethod User where
   type Requester User = User
   data CreateActionBody User = CreateUserBody UserBody
-                           deriving (Generic, Aeson.FromJSON)
+                               deriving (Generic, Aeson.FromJSON)
   data CreateActionView User = CreateUserView UserView
-                           deriving (Generic, Aeson.ToJSON)
+                               deriving (Generic, Aeson.ToJSON)
 
 instance HasUpdateMethod User where
   data UpdateActionBody User = UpdateUserBody UserBody
-                           deriving (Generic, Aeson.FromJSON)
+                               deriving (Generic, Aeson.FromJSON)
   data UpdateActionView User = UpdateUserView UserView
-                           deriving (Generic, Aeson.ToJSON)
+                               deriving (Generic, Aeson.ToJSON)
 
 instance HasDeleteMethod User
 
 instance HasListMethod User where
   data ListActionView User = ListUserView UserView
-                         deriving (Generic, Aeson.ToJSON)
+                             deriving (Generic, Aeson.ToJSON)
 
 instance HasRetrieveMethod User where
   type Requester User = User
   data RetrieveActionView User = RetrieveUserView UserView
-                             deriving (Generic, Aeson.ToJSON)
+                                 deriving (Generic, Aeson.ToJSON)
 
 instance Resource User where
   type Api User = CreateApi "users" (CreateActionBody User) (CreateActionView User) :<|> DeleteApi "users" :<|> UpdateApi "users" (UpdateActionBody User) (UpdateActionView User) :<|> ListApi "users" (ListActionView User) :<|> RetrieveApi "users" (RetrieveActionView User)

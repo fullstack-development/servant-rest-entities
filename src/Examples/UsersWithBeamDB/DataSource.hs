@@ -8,10 +8,8 @@
 
 module Examples.UsersWithBeamDB.DataSource where
 
-import qualified Data.List as L
 import Database.Beam
 import qualified Database.Beam.Backend.SQL.BeamExtensions as BeamExtensions
-import Database.Beam.Backend.SQL.Types (unSerial)
 import Database.Beam.Postgres
 import Database.Beam.Postgres.Syntax
 
