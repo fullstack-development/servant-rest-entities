@@ -15,8 +15,9 @@ import Data.Time
 import GHC.Generics (Generic)
 
 import Database.Beam
-import Database.Beam.Backend.SQL.Types (SqlSerial)
 import Database.Beam.Postgres
+
+type family IdentityToTable identTable :: (* -> *) -> *
 
 -- === MODELS ===
 --
@@ -32,6 +33,8 @@ data UserT f = User
 
 type User = UserT Identity
 
+type instance IdentityToTable User = UserT
+
 type UserId = PrimaryKey UserT Identity
 
 deriving instance Show User
@@ -40,7 +43,7 @@ deriving instance Eq User
 
 instance Table UserT where
   data PrimaryKey UserT f = UserId (Columnar f Int)
-                        deriving (Generic, Beamable)
+                            deriving (Generic, Beamable)
   primaryKey = UserId . _userId
 
 deriving instance Show (PrimaryKey UserT Identity)
@@ -75,6 +78,8 @@ data AuthT f = Auth
 
 type Auth = AuthT Identity
 
+type instance IdentityToTable Auth = AuthT
+
 type AuthId = PrimaryKey AuthT Identity
 
 deriving instance Show Auth
@@ -83,7 +88,7 @@ deriving instance Eq Auth
 
 instance Table AuthT where
   data PrimaryKey AuthT f = AuthId (Columnar f Int)
-                        deriving (Generic, Beamable)
+                            deriving (Generic, Beamable)
   primaryKey = AuthId . _authId
 
 deriving instance Show (PrimaryKey AuthT Identity)
