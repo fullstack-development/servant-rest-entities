@@ -1,5 +1,4 @@
 {-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE TupleSections #-}
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE ConstraintKinds #-}
@@ -157,6 +156,10 @@ instance BeamStorable DB.User where
   beamTableSelector _ = DB._user
   beamTablePKConstructor _ = DB.UserId
 
+instance BeamStorable DB.Auth where
+  beamTableSelector _ = DB._auth
+  beamTablePKConstructor _ = DB.AuthId
+
 instance DataProvider ServerConfigReader where
   type DataProviderTypeClass ServerConfigReader = BeamStorable
   type CreateDataStructure ServerConfigReader = BeamCreateStructure
@@ -182,3 +185,49 @@ instance DataProvider ServerConfigReader where
     -> ServerConfigReader (Maybe dbmodel)
   createEntity proxyEntity (BeamCreateStructure dataStructure) =
     runDS $ createFromExpr (beamTableSelector proxyEntity) dataStructure
+
+innerJoin ::
+     ( FieldsFulfillConstraint (HasSqlEqualityCheck PgExpressionSyntax) (PrimaryKey table)
+     , Generic (PrimaryKey table Exposed)
+     , Generic (PrimaryKey table Identity)
+     , Table table
+     )
+  => t
+  -> (t -> PrimaryKey table (QExpr PgExpressionSyntax s))
+  -> TableSelector table
+  -> Q PgSelectSyntax DB.DemoBeamRestDb s (table (QExpr PgExpressionSyntax s))
+innerJoin baseEntity field relEntity = do
+  enitity <- all_ (relEntity DB.demoBeamRestDb)
+  guard_ (field baseEntity `references_` enitity)
+  return enitity
+
+class ( DB.IdentityToTable dbmodelA Identity ~ dbmodelA
+      , DB.IdentityToTable dbmodelB Identity ~ dbmodelB
+      ) =>
+      HasRelation dbmodelA dbmodelB
+  where
+  baseEntity :: Proxy dbmodelB -> TableSelector (DB.IdentityToTable dbmodelA)
+  relEntity :: Proxy dbmodelA -> TableSelector (DB.IdentityToTable dbmodelB)
+  joinField ::
+       (DB.IdentityToTable dbmodelA (QExpr PgExpressionSyntax s) -> PrimaryKey (DB.IdentityToTable dbmodelB) (QExpr PgExpressionSyntax s))
+  innerJoinRelation ::
+       ( FieldsFulfillConstraint (HasSqlEqualityCheck PgExpressionSyntax) (PrimaryKey (DB.IdentityToTable dbmodelA))
+       , Generic (PrimaryKey (DB.IdentityToTable dbmodelA) Exposed)
+       , Generic (PrimaryKey (DB.IdentityToTable dbmodelA) Identity)
+       , Table (DB.IdentityToTable dbmodelA)
+       , FieldsFulfillConstraint (HasSqlEqualityCheck PgExpressionSyntax) (PrimaryKey (DB.IdentityToTable dbmodelB))
+       , Generic (PrimaryKey (DB.IdentityToTable dbmodelB) Exposed)
+       , Generic (PrimaryKey (DB.IdentityToTable dbmodelB) Identity)
+       , Table (DB.IdentityToTable dbmodelB)
+       )
+    => DB.IdentityToTable dbmodelA (QExpr PgExpressionSyntax s)
+    -> Q PgSelectSyntax DB.DemoBeamRestDb s ((DB.IdentityToTable dbmodelB) (QExpr PgExpressionSyntax s))
+  innerJoinRelation baseEntity = do
+    enitity <- all_ (relEntity (Proxy :: Proxy dbmodelA) DB.demoBeamRestDb)
+    guard_ (joinField baseEntity `references_` enitity)
+    return enitity
+
+instance HasRelation DB.User DB.Auth where
+  baseEntity _ = DB._user
+  relEntity _ = DB._auth
+  joinField = DB._userAuthId
