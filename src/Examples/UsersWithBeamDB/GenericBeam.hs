@@ -68,12 +68,3 @@ instance DataProvider ServerConfigReader where
        (BeamStorable dbmodel) => Proxy dbmodel -> ServerConfigReader [dbmodel]
   getAllEntities proxyEntity =
     runDS $ queryGetAll $ beamTableSelector proxyEntity
-    -- results <- runDS $ queryGetAll $ beamTableSelector proxyEntity
-    -- forM results $ \entity -> do
-    --   rels <-
-    --     runAction $
-    --     applyReduced
-    --       (runDS . getAllEntities)
-    --       (undefined :: MapProxyToRels (Proxy (MapDataProviders (ChildRelations (ModelOfDataProvider dbmodel))))) -- :: ServerConfigReader (MapDataProviders (ChildRelations (ModelOfDataProvider dbmodel)))
-    --   pure (entity, rels)
-    -- pure $ map (, undefined) result
