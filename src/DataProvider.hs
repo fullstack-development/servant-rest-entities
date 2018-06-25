@@ -5,7 +5,6 @@
 {-# LANGUAGE DefaultSignatures #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE UndecidableInstances #-}
-{-# LANGUAGE FunctionalDependencies #-}
 
 module DataProvider where
 
@@ -51,7 +50,6 @@ type LoadAllConstraint model
 
 class (ModelOfDataProvider (DataProviderModel model) ~ model) =>
       HasDataProvider model
-  | model -> model
   where
   type DataProviderModel model
   type MonadDataProvider model :: * -> *
