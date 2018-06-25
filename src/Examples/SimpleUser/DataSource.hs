@@ -4,18 +4,17 @@
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE TupleSections #-}
 
 module Examples.SimpleUser.DataSource
   (
   ) where
 
+import Control.Monad.Identity
 import Control.Monad.Trans.Maybe
 import Data.List
 import Data.Maybe
 import qualified Data.Text as T
 import Data.Time
-import Data.Tuple
 import Servant
 
 import DataProvider
@@ -190,19 +189,24 @@ instance HasDataProvider Model.User where
           }
 
 class MemoryStorable entity where
-  getId :: Proxy entity -> (entity -> Int)
+  getId :: Proxy entity -> entity -> Int
+  getList :: Proxy entity -> [entity]
 
 instance MemoryStorable Author where
   getId _ = fromPK . authorId
+  getList _ = authors
 
 instance MemoryStorable BlogPost where
   getId _ = fromPK . blogPostId
+  getList _ = posts
 
 instance MemoryStorable Auth where
   getId _ = fromPK . authId
+  getList _ = auths
 
 instance MemoryStorable User where
   getId _ = fromPK . userId
+  getList _ = users
 
 instance HasDataProvider Model.Auth where
   type DataProviderModel Model.Auth = Auth
@@ -251,10 +255,6 @@ instance HasDataProvider Model.RichPost where
           }
       dpAuthors = (`pack` rels) <$> postAuthors
 
-instance DataProvider Handler where
-  type DataProviderTypeClass Handler = MemoryStorable
-  type CreateDataStructure Handler = Maybe
-
 instance HasDataProvider Model.LightAuthor where
   type DataProviderModel Model.LightAuthor = Author
   type ChildRelations Model.LightAuthor = ()
@@ -272,3 +272,10 @@ instance HasDataProvider Model.RichAuthor where
   type ParentRelations Model.RichAuthor = ()
   type ChildRelations Model.RichAuthor = [Model.LightPost]
   type MonadDataProvider Model.RichAuthor = Handler
+
+instance DataProvider Handler where
+  type DataProviderTypeClass Handler = MemoryStorable
+  type CreateDataStructure Handler = Identity
+  getAllEntities = pure . getList
+  getEntityById proxy pk = pure $ find ((== pk) . getId proxy) (getList proxy)
+  createEntity _ (Identity model) = pure $ Just model

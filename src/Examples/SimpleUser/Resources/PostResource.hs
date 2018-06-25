@@ -14,6 +14,7 @@ module Examples.SimpleUser.Resources.PostResource
 
 import qualified Data.Aeson as Aeson
 import qualified Data.Text as T
+import Data.Void
 import GHC.Generics
 
 import Examples.SimpleUser.DataSource ()
@@ -44,16 +45,16 @@ instance Serializable RichPost (RetrieveActionView RichPost) where
   serialize BlogPost {..} =
     RetrievePostView
       PostView
-      { postId = fromId postId
-      , postText = postText
-      , postTitle = postTitle
-      , authors = map serialize postAuthors
-      }
+        { postId = fromId postId
+        , postText = postText
+        , postTitle = postTitle
+        , authors = map serialize postAuthors
+        }
 
 instance HasRetrieveMethod RichPost where
-  type Requester RichPost = RichPost
+  type Requester RichPost = Void
   data RetrieveActionView RichPost = RetrievePostView PostView
-                                 deriving (Generic, Aeson.ToJSON)
+                                     deriving (Generic, Aeson.ToJSON)
 
 instance Resource RichPost where
   type Api RichPost = RetrieveApi "posts" (RetrieveActionView RichPost)
