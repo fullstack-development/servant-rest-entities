@@ -1,18 +1,11 @@
-{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE DefaultSignatures #-}
-{-# LANGUAGE GADTs #-}
-{-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE DataKinds #-}
-{-# LANGUAGE PolyKinds #-}
-{-# LANGUAGE TypeInType #-}
-{-# LANGUAGE TypeOperators #-}
-{-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE FunctionalDependencies #-}
 
 module DataProvider where
 
@@ -58,6 +51,7 @@ type LoadAllConstraint model
 
 class (ModelOfDataProvider (DataProviderModel model) ~ model) =>
       HasDataProvider model
+  | model -> model
   where
   type DataProviderModel model
   type MonadDataProvider model :: * -> *
@@ -76,10 +70,11 @@ class (ModelOfDataProvider (DataProviderModel model) ~ model) =>
   loadAll :: Proxy model -> MonadDataProvider model [model]
   default loadAll :: LoadAllConstraint model =>
     Proxy model -> MonadDataProvider model [model]
-  -- TODO load relations for each model
-  loadAll proxyModel =
-    map (`unpack` undefined) <$>
-    getAllEntities (Proxy :: Proxy (DataProviderModel model))
+  -- TODO: load relations for each model
+  loadAll proxyModel = do
+    entities <- getAllEntities (Proxy :: Proxy (DataProviderModel model))
+    let models = (`unpack` Nothing) <$> entities
+    return models
   deleteById :: Proxy model -> Int -> MonadDataProvider model (Either String ())
 
 class HasDataSourceRun (actionMonad :: * -> *) (dsMonad :: * -> *) where
