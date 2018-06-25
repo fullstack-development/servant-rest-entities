@@ -204,7 +204,7 @@ innerJoin baseEntity field relEntity = do
 class ( DB.IdentityToTable dbmodelA Identity ~ dbmodelA
       , DB.IdentityToTable dbmodelB Identity ~ dbmodelB
       ) =>
-      HasRelation dbmodelA dbmodelB
+      BeamHasRelation dbmodelA dbmodelB
   where
   baseEntity :: Proxy dbmodelB -> TableSelector (DB.IdentityToTable dbmodelA)
   relEntity :: Proxy dbmodelA -> TableSelector (DB.IdentityToTable dbmodelB)
@@ -227,7 +227,7 @@ class ( DB.IdentityToTable dbmodelA Identity ~ dbmodelA
     guard_ (joinField baseEntity `references_` enitity)
     return enitity
 
-instance HasRelation DB.User DB.Auth where
+instance BeamHasRelation DB.User DB.Auth where
   baseEntity _ = DB._user
   relEntity _ = DB._auth
   joinField = DB._userAuthId

@@ -112,7 +112,6 @@ instance HasDataProvider Auth where
   type MonadDataProvider Auth = ServerConfigReader
   type ChildRelations Auth = ()
   type ParentRelations Auth = User
-  loadAll _ = undefined
   save user = pure undefined
   deleteById _ _ = pure undefined
   loadById _ _ = pure Nothing
