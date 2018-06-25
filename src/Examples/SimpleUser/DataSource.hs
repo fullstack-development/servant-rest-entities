@@ -7,7 +7,6 @@ module Examples.SimpleUser.DataSource where
 
 import Control.Monad.Trans.Maybe
 import Data.List
-import Data.Maybe
 import qualified Data.Text as T
 import Data.Time
 import Servant
@@ -55,35 +54,37 @@ time = getCurrentTime
 
 users =
   [ User
-    { userId = PrimaryKey 1
-    , userFirstName = Column "Nikita"
-    , userLastName = Column "Razmakhnin"
-    , userIsStaff = Column False
-    , userCreatedAt = Column $ UTCTime (ModifiedJulianDay 0) 0
-    }
+      { userId = PrimaryKey 1
+      , userFirstName = Column "Nikita"
+      , userLastName = Column "Razmakhnin"
+      , userIsStaff = Column False
+      , userCreatedAt = Column $ UTCTime (ModifiedJulianDay 0) 0
+      }
   , User
-    { userId = PrimaryKey 2
-    , userFirstName = Column "Sergey"
-    , userLastName = Column "Cherepanov"
-    , userIsStaff = Column True
-    , userCreatedAt = Column $ UTCTime (ModifiedJulianDay 0) 0
-    }
+      { userId = PrimaryKey 2
+      , userFirstName = Column "Sergey"
+      , userLastName = Column "Cherepanov"
+      , userIsStaff = Column True
+      , userCreatedAt = Column $ UTCTime (ModifiedJulianDay 0) 0
+      }
   ]
 
 auths =
   [ Auth
-    { authId = PrimaryKey 1
-    , authPassword = Column "test test"
-    , authCreatedAt = Column $ UTCTime (ModifiedJulianDay 0) 0
-    , authUserId = ForeignKey (PrimaryKey 1)
-    }
+      { authId = PrimaryKey 1
+      , authPassword = Column "test test"
+      , authCreatedAt = Column $ UTCTime (ModifiedJulianDay 0) 0
+      , authUserId = ForeignKey (PrimaryKey 1)
+      }
   , Auth
-    { authId = PrimaryKey 2
-    , authPassword = Column "test test"
-    , authCreatedAt = Column $ UTCTime (ModifiedJulianDay 0) 0
-    , authUserId = ForeignKey (PrimaryKey 2)
-    }
+      { authId = PrimaryKey 2
+      , authPassword = Column "test test"
+      , authCreatedAt = Column $ UTCTime (ModifiedJulianDay 0) 0
+      , authUserId = ForeignKey (PrimaryKey 2)
+      }
   ]
+
+type instance ModelOfDataProvider User = Model.User
 
 instance HasDataProvider Model.User where
   type DataProviderModel Model.User = User
@@ -105,25 +106,27 @@ instance HasDataProvider Model.User where
       authByUserId id auth = fromFK (authUserId auth) == id
   unpack User {..} (Just auth) =
     Model.User
-    { userId = Model.Id $ fromPK userId
-    , userFirstName = fromColumn userFirstName
-    , userLastName = fromColumn userLastName
-    , userIsStaff = fromColumn userIsStaff
-    , userCreatedAt = fromColumn userCreatedAt
-    , userAuth = unpack auth Nothing
-    }
+      { userId = Model.Id $ fromPK userId
+      , userFirstName = fromColumn userFirstName
+      , userLastName = fromColumn userLastName
+      , userIsStaff = fromColumn userIsStaff
+      , userCreatedAt = fromColumn userCreatedAt
+      , userAuth = unpack auth Nothing
+      }
   unpack _ Nothing = error "You should pass all relations to user db converter."
   pack user@Model.User {..} _ = (providedUser, providedAuth)
     where
       (providedAuth, _) = pack userAuth (Just user)
       providedUser =
         User
-        { userId = PrimaryKey (Model.fromId userId)
-        , userFirstName = Column userFirstName
-        , userLastName = Column userLastName
-        , userCreatedAt = Column userCreatedAt
-        , userIsStaff = Column userIsStaff
-        }
+          { userId = PrimaryKey (Model.fromId userId)
+          , userFirstName = Column userFirstName
+          , userLastName = Column userLastName
+          , userCreatedAt = Column userCreatedAt
+          , userIsStaff = Column userIsStaff
+          }
+
+type instance ModelOfDataProvider Auth = Model.Auth
 
 instance HasDataProvider Model.Auth where
   type DataProviderModel Model.Auth = Auth
@@ -139,18 +142,18 @@ instance HasDataProvider Model.Auth where
     where
       dbAuth =
         Auth
-        { authId =
-            if Model.isIdEmpty authId
-              then def
-              else PrimaryKey (Model.fromId authId)
-        , authPassword = Column authPassword
-        , authCreatedAt = Column authCreatedAt
-        , authUserId =
-            ForeignKey (PrimaryKey (Model.fromId $ Model.userId user))
-        }
+          { authId =
+              if Model.isIdEmpty authId
+                then def
+                else PrimaryKey (Model.fromId authId)
+          , authPassword = Column authPassword
+          , authCreatedAt = Column authCreatedAt
+          , authUserId =
+              ForeignKey (PrimaryKey (Model.fromId $ Model.userId user))
+          }
   unpack Auth {..} _ =
     Model.Auth
-    { authId = Model.Id $ fromPK authId
-    , authPassword = fromColumn authPassword
-    , authCreatedAt = fromColumn authCreatedAt
-    }
+      { authId = Model.Id $ fromPK authId
+      , authPassword = fromColumn authPassword
+      , authCreatedAt = fromColumn authCreatedAt
+      }

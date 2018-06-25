@@ -4,15 +4,15 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module Examples.UsersWithBeamDB.DataSource where
 
-import qualified Data.List as L
+import Data.Proxy
 import Database.Beam
-import qualified Database.Beam.Backend.SQL.BeamExtensions as BeamExtensions
-import Database.Beam.Backend.SQL.Types (unSerial)
 import Database.Beam.Postgres
 import Database.Beam.Postgres.Syntax
+import Examples.UsersWithBeamDB.GenericBeam
 
 import DataProvider
 import qualified Examples.UsersWithBeamDB.Database as DB
@@ -34,33 +34,30 @@ queryUserWithAuth ::
                                           , DB.AuthT (QExpr PgExpressionSyntax s))
 queryUserWithAuth = do
   user <- all_ (DB._user DB.demoBeamRestDb)
-  auth <- all_ (DB._auth DB.demoBeamRestDb)
-  guard_ (DB._userAuthId user `references_` auth)
+  auth <- innerJoinRelation user
   pure (user, auth)
 
-saveUserFromModel :: User -> Pg (DB.User, DB.Auth)
+saveUserFromModel :: User -> ServerConfigReader (DB.User, DB.Auth)
 saveUserFromModel userModel = do
-  [auth] <-
-    BeamExtensions.runInsertReturningList
-      (DB._auth DB.demoBeamRestDb)
-      (insertExpressions
-         [ DB.Auth
-             default_
-             (val_ $ authPassword $ userAuth userModel)
-             (val_ $ authCreatedAt $ userAuth userModel)
-         ])
-  [user] <-
-    BeamExtensions.runInsertReturningList
-      (DB._user DB.demoBeamRestDb)
-      (insertExpressions
-         [ DB.User
-             default_
-             (val_ $ userFirstName userModel)
-             (val_ $ userLastName userModel)
-             (val_ $ userCreatedAt userModel)
-             (val_ $ userIsStaff userModel)
-             (val_ $ pk auth)
-         ])
+  Just auth <-
+    createEntity
+      (Proxy :: Proxy DB.Auth)
+      (BeamCreateStructure
+         (DB.Auth
+            default_
+            (val_ $ authPassword $ userAuth userModel)
+            (val_ $ authCreatedAt $ userAuth userModel)))
+  Just user <-
+    createEntity
+      (Proxy :: Proxy DB.User)
+      (BeamCreateStructure
+         (DB.User
+            default_
+            (val_ $ userFirstName userModel)
+            (val_ $ userLastName userModel)
+            (val_ $ userCreatedAt userModel)
+            (val_ $ userIsStaff userModel)
+            (val_ $ pk auth)))
   pure (user, auth)
 
 deleteUserFromDB :: Int -> Pg (Either String ())
@@ -68,6 +65,8 @@ deleteUserFromDB entityId =
   runDelete
     (delete (DB._user DB.demoBeamRestDb) (\u -> DB._userId u ==. val_ entityId)) >>
   pure (Right ())
+
+type instance ModelOfDataProvider DB.User = User
 
 instance HasDataProvider User where
   type DataProviderModel User = DB.User
@@ -77,7 +76,7 @@ instance HasDataProvider User where
   loadAll _ =
     map (\(user, auth) -> unpack user (Just auth)) <$> runDS selectUsersWithAuth
   save user = do
-    (savedUser, savedAuth) <- runDS . saveUserFromModel $ user
+    (savedUser, savedAuth) <- saveUserFromModel user
     return $ unpack savedUser (Just savedAuth)
   deleteById _ = runDS . deleteUserFromDB
   loadById _ pk = do
@@ -106,12 +105,13 @@ instance HasDataProvider User where
       _userIsStaff
       (unpack auth Nothing)
 
+type instance ModelOfDataProvider DB.Auth = Auth
+
 instance HasDataProvider Auth where
   type DataProviderModel Auth = DB.Auth
   type MonadDataProvider Auth = ServerConfigReader
   type ChildRelations Auth = ()
   type ParentRelations Auth = User
-  loadAll _ = undefined
   save user = pure undefined
   deleteById _ _ = pure undefined
   loadById _ _ = pure Nothing

@@ -29,7 +29,7 @@ import qualified Servant.Auth.Server as ServantAuth
 import qualified Web.Cookie as Cookie
 
 import DataProvider
-import qualified Examples.SimpleUser.DataSource as DS
+import qualified Examples.SimpleUser.DataSource as DS ()
 import Examples.SimpleUser.Model
 import Model
 import Permissions
@@ -64,23 +64,26 @@ deserializeUserBody Nothing UserBody {..} = do
   time <- getCurrentTime
   return
     User
-    { userId = Empty
-    , userAuth =
-        Auth
-        {authId = Empty, authPassword = userBodyPassword, authCreatedAt = time}
-    , userFirstName = userBodyFirstName
-    , userLastName = userBodyLastName
-    , userIsStaff = userBodyIsStaff
-    , userCreatedAt = time
-    }
+      { userId = Empty
+      , userAuth =
+          Auth
+            { authId = Empty
+            , authPassword = userBodyPassword
+            , authCreatedAt = time
+            }
+      , userFirstName = userBodyFirstName
+      , userLastName = userBodyLastName
+      , userIsStaff = userBodyIsStaff
+      , userCreatedAt = time
+      }
 
 serializeUserBody User {..} =
   UserView
-  { userViewId = fromId userId
-  , userViewFirstName = userFirstName
-  , userViewLastName = userLastName
-  , userViewIsStaff = userIsStaff
-  }
+    { userViewId = fromId userId
+    , userViewFirstName = userFirstName
+    , userViewLastName = userLastName
+    , userViewIsStaff = userIsStaff
+    }
 
 instance Serializable User (CreateActionView User) where
   serialize user = CreateUserView $ serializeUserBody user
@@ -103,26 +106,26 @@ instance Serializable User (RetrieveActionView User) where
 instance HasCreateMethod User where
   type Requester User = User
   data CreateActionBody User = CreateUserBody UserBody
-                           deriving (Generic, Aeson.FromJSON)
+                               deriving (Generic, Aeson.FromJSON)
   data CreateActionView User = CreateUserView UserView
-                           deriving (Generic, Aeson.ToJSON)
+                               deriving (Generic, Aeson.ToJSON)
 
 instance HasUpdateMethod User where
   data UpdateActionBody User = UpdateUserBody UserBody
-                           deriving (Generic, Aeson.FromJSON)
+                               deriving (Generic, Aeson.FromJSON)
   data UpdateActionView User = UpdateUserView UserView
-                           deriving (Generic, Aeson.ToJSON)
+                               deriving (Generic, Aeson.ToJSON)
 
 instance HasDeleteMethod User
 
 instance HasListMethod User where
   data ListActionView User = ListUserView UserView
-                         deriving (Generic, Aeson.ToJSON)
+                             deriving (Generic, Aeson.ToJSON)
 
 instance HasRetrieveMethod User where
   type Requester User = User
   data RetrieveActionView User = RetrieveUserView UserView
-                             deriving (Generic, Aeson.ToJSON)
+                                 deriving (Generic, Aeson.ToJSON)
   checkEntityPermission (Just user) entity =
     return (userId user == userId entity)
   checkEntityPermission _ _ = return False
@@ -150,7 +153,7 @@ mkApp jwtSecret = do
   let authExpiresIn = addUTCTime authDuration time
   let cookieCfg =
         ServantAuth.defaultCookieSettings
-        {ServantAuth.cookieExpires = Just authExpiresIn}
+          {ServantAuth.cookieExpires = Just authExpiresIn}
   let jwtCfg = ServantAuth.defaultJWTSettings jwtSecret
   let cfg = cookieCfg :. jwtCfg :. EmptyContext
   return $ serveWithContext routes cfg (fullApi cookieCfg jwtCfg)

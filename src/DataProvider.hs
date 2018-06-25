@@ -1,16 +1,11 @@
-{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE ConstraintKinds #-}
-{-# LANGUAGE FunctionalDependencies #-}
-{-# LANGUAGE GADTs #-}
+{-# LANGUAGE DefaultSignatures #-}
 {-# LANGUAGE DataKinds #-}
-{-# LANGUAGE PolyKinds #-}
-{-# LANGUAGE TypeInType #-}
-{-# LANGUAGE TypeOperators #-}
-{-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 
 module DataProvider where
 
@@ -47,7 +42,16 @@ type family MapDataProviders e where
                                            , MapDataProviders g)
   MapDataProviders e = DataProviderModel e
 
-class HasDataProvider model where
+type family ModelOfDataProvider dbmodel :: *
+
+type LoadAllConstraint model
+   = ( Monad (MonadDataProvider model)
+     , DataProviderTypeClass (MonadDataProvider model) (DataProviderModel model)
+     , DataProvider (MonadDataProvider model))
+
+class (ModelOfDataProvider (DataProviderModel model) ~ model) =>
+      HasDataProvider model
+  where
   type DataProviderModel model
   type MonadDataProvider model :: * -> *
   type ChildRelations model
@@ -63,7 +67,30 @@ class HasDataProvider model where
   save :: model -> MonadDataProvider model model
   loadById :: Proxy model -> Int -> MonadDataProvider model (Maybe model)
   loadAll :: Proxy model -> MonadDataProvider model [model]
+  default loadAll :: LoadAllConstraint model =>
+    Proxy model -> MonadDataProvider model [model]
+  -- TODO: load relations for each model
+  loadAll proxyModel = do
+    entities <- getAllEntities (Proxy :: Proxy (DataProviderModel model))
+    let models = (`unpack` Nothing) <$> entities
+    return models
   deleteById :: Proxy model -> Int -> MonadDataProvider model (Either String ())
 
 class HasDataSourceRun (actionMonad :: * -> *) (dsMonad :: * -> *) where
   runDS :: dsMonad a -> actionMonad a
+
+class DataProvider dp where
+  type DataProviderTypeClass dp :: * -> Constraint
+  type CreateDataStructure dp :: * -> *
+  getAllEntities ::
+       (DataProviderTypeClass dp dbmodel) => Proxy dbmodel -> dp [dbmodel]
+  getEntityById ::
+       (DataProviderTypeClass dp dbmodel)
+    => Proxy dbmodel
+    -> Int
+    -> dp (Maybe dbmodel)
+  createEntity ::
+       (DataProviderTypeClass dp dbmodel)
+    => Proxy dbmodel
+    -> CreateDataStructure dp dbmodel
+    -> dp (Maybe dbmodel)
