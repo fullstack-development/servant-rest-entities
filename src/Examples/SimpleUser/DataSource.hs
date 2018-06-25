@@ -232,6 +232,8 @@ instance HasDataProvider Model.Auth where
       , authPassword = fromColumn authPassword
       , authCreatedAt = fromColumn authCreatedAt
       }
+  save = undefined
+  deleteById = undefined
 
 instance HasDataProvider Model.RichPost where
   type DataProviderModel Model.RichPost = BlogPost
@@ -254,6 +256,8 @@ instance HasDataProvider Model.RichPost where
           , blogPostTitle = Column postTitle
           }
       dpAuthors = (`pack` rels) <$> postAuthors
+  save = undefined
+  deleteById = undefined
 
 instance HasDataProvider Model.LightAuthor where
   type DataProviderModel Model.LightAuthor = Author
@@ -266,12 +270,19 @@ instance HasDataProvider Model.LightAuthor where
       , Model.authorPseudonim = fromColumn authorPseudonim
       , authorPosts = Model.Unfilled
       }
+  pack = undefined
+  save = undefined
+  deleteById = undefined
 
 instance HasDataProvider Model.RichAuthor where
   type DataProviderModel Model.RichAuthor = Author
   type ParentRelations Model.RichAuthor = ()
   type ChildRelations Model.RichAuthor = [Model.LightPost]
   type MonadDataProvider Model.RichAuthor = Handler
+  unpack = undefined
+  pack = undefined
+  save = undefined
+  deleteById = undefined
 
 instance DataProvider Handler where
   type DataProviderTypeClass Handler = MemoryStorable
