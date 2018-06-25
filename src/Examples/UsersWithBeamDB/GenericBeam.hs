@@ -28,6 +28,12 @@ import qualified Examples.UsersWithBeamDB.Database as DB
 type TableSelector table
    = (DatabaseSettings Postgres DB.DemoBeamRestDb -> DatabaseEntity Postgres DB.DemoBeamRestDb (TableEntity table))
 
+type TableWithPK table
+   = ( FieldsFulfillConstraint (HasSqlEqualityCheck PgExpressionSyntax) (PrimaryKey table)
+     , Generic (PrimaryKey table Exposed)
+     , Generic (PrimaryKey table Identity)
+     , Table table)
+
 selectQueryAll ::
      (Table table)
   => TableSelector table
@@ -135,12 +141,9 @@ createFromExpr table entity = listToMaybe <$> runQueryFromExpr table entity
 
 class ( Generic e
       , DB.IdentityToTable e Identity ~ e
-      , Generic (DB.IdentityToTable e Identity)
-      , Generic (DB.IdentityToTable e Exposed)
+      , TableWithPK (DB.IdentityToTable e)
       , FromBackendRow Postgres (DB.IdentityToTable e Identity)
-      , Table (DB.IdentityToTable e)
       , FieldsFulfillConstraint (HasSqlValueSyntax PgValueSyntax) (DB.IdentityToTable e)
-      , FieldsFulfillConstraint (HasSqlEqualityCheck PgExpressionSyntax) (PrimaryKey (DB.IdentityToTable e))
       , FieldsFulfillConstraint (HasSqlValueSyntax PgValueSyntax) (PrimaryKey (DB.IdentityToTable e))
       ) =>
       BeamStorable (e :: *)
@@ -187,11 +190,7 @@ instance DataProvider ServerConfigReader where
     runDS $ createFromExpr (beamTableSelector proxyEntity) dataStructure
 
 innerJoin ::
-     ( FieldsFulfillConstraint (HasSqlEqualityCheck PgExpressionSyntax) (PrimaryKey table)
-     , Generic (PrimaryKey table Exposed)
-     , Generic (PrimaryKey table Identity)
-     , Table table
-     )
+     TableWithPK table
   => t
   -> (t -> PrimaryKey table (QExpr PgExpressionSyntax s))
   -> TableSelector table
@@ -211,14 +210,8 @@ class ( DB.IdentityToTable dbmodelA Identity ~ dbmodelA
   joinField ::
        (DB.IdentityToTable dbmodelA (QExpr PgExpressionSyntax s) -> PrimaryKey (DB.IdentityToTable dbmodelB) (QExpr PgExpressionSyntax s))
   innerJoinRelation ::
-       ( FieldsFulfillConstraint (HasSqlEqualityCheck PgExpressionSyntax) (PrimaryKey (DB.IdentityToTable dbmodelA))
-       , Generic (PrimaryKey (DB.IdentityToTable dbmodelA) Exposed)
-       , Generic (PrimaryKey (DB.IdentityToTable dbmodelA) Identity)
-       , Table (DB.IdentityToTable dbmodelA)
-       , FieldsFulfillConstraint (HasSqlEqualityCheck PgExpressionSyntax) (PrimaryKey (DB.IdentityToTable dbmodelB))
-       , Generic (PrimaryKey (DB.IdentityToTable dbmodelB) Exposed)
-       , Generic (PrimaryKey (DB.IdentityToTable dbmodelB) Identity)
-       , Table (DB.IdentityToTable dbmodelB)
+       ( TableWithPK (DB.IdentityToTable dbmodelA)
+       , TableWithPK (DB.IdentityToTable dbmodelB)
        )
     => DB.IdentityToTable dbmodelA (QExpr PgExpressionSyntax s)
     -> Q PgSelectSyntax DB.DemoBeamRestDb s ((DB.IdentityToTable dbmodelB) (QExpr PgExpressionSyntax s))
