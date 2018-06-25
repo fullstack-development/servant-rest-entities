@@ -13,7 +13,6 @@ module Examples.SimpleUser.DataSource
 import Control.Monad.Trans.Maybe
 import Data.List
 import Data.Maybe
-import Data.Maybe
 import qualified Data.Text as T
 import Data.Time
 import Data.Tuple
@@ -79,34 +78,34 @@ time = getCurrentTime
 
 users =
   [ User
-    { userId = PrimaryKey 1
-    , userFirstName = Column "Nikita"
-    , userLastName = Column "Razmakhnin"
-    , userIsStaff = Column False
-    , userCreatedAt = Column $ UTCTime (ModifiedJulianDay 0) 0
-    }
+      { userId = PrimaryKey 1
+      , userFirstName = Column "Nikita"
+      , userLastName = Column "Razmakhnin"
+      , userIsStaff = Column False
+      , userCreatedAt = Column $ UTCTime (ModifiedJulianDay 0) 0
+      }
   , User
-    { userId = PrimaryKey 2
-    , userFirstName = Column "Sergey"
-    , userLastName = Column "Cherepanov"
-    , userIsStaff = Column True
-    , userCreatedAt = Column $ UTCTime (ModifiedJulianDay 0) 0
-    }
+      { userId = PrimaryKey 2
+      , userFirstName = Column "Sergey"
+      , userLastName = Column "Cherepanov"
+      , userIsStaff = Column True
+      , userCreatedAt = Column $ UTCTime (ModifiedJulianDay 0) 0
+      }
   ]
 
 auths =
   [ Auth
-    { authId = PrimaryKey 1
-    , authPassword = Column "test test"
-    , authCreatedAt = Column $ UTCTime (ModifiedJulianDay 0) 0
-    , authUserId = ForeignKey (PrimaryKey 1)
-    }
+      { authId = PrimaryKey 1
+      , authPassword = Column "test test"
+      , authCreatedAt = Column $ UTCTime (ModifiedJulianDay 0) 0
+      , authUserId = ForeignKey (PrimaryKey 1)
+      }
   , Auth
-    { authId = PrimaryKey 2
-    , authPassword = Column "test test"
-    , authCreatedAt = Column $ UTCTime (ModifiedJulianDay 0) 0
-    , authUserId = ForeignKey (PrimaryKey 2)
-    }
+      { authId = PrimaryKey 2
+      , authPassword = Column "test test"
+      , authCreatedAt = Column $ UTCTime (ModifiedJulianDay 0) 0
+      , authUserId = ForeignKey (PrimaryKey 2)
+      }
   ]
 
 authors =
@@ -118,15 +117,15 @@ authors =
 
 posts =
   [ BlogPost
-    { blogPostId = PrimaryKey 1
-    , blogPostText = Column "Text blog post with test content 1"
-    , blogPostTitle = Column "Test blog post 1"
-    }
+      { blogPostId = PrimaryKey 1
+      , blogPostText = Column "Text blog post with test content 1"
+      , blogPostTitle = Column "Test blog post 1"
+      }
   , BlogPost
-    { blogPostId = PrimaryKey 2
-    , blogPostText = Column "Text blog post with test content 2"
-    , blogPostTitle = Column "Test blog post 2"
-    }
+      { blogPostId = PrimaryKey 2
+      , blogPostText = Column "Text blog post with test content 2"
+      , blogPostTitle = Column "Test blog post 2"
+      }
   ]
 
 postsAuthors
@@ -151,6 +150,8 @@ postsAuthors
       (ForeignKey $ PrimaryKey 1)
   ]
 
+type instance ModelOfDataProvider User = Model.User
+
 instance HasDataProvider Model.User where
   type DataProviderModel Model.User = User
   type MonadDataProvider Model.User = Handler
@@ -171,24 +172,26 @@ instance HasDataProvider Model.User where
       authByUserId id auth = fromFK (authUserId auth) == id
   unpack User {..} (auth, _) =
     Model.User
-    { userId = Model.Id $ fromPK userId
-    , userFirstName = fromColumn userFirstName
-    , userLastName = fromColumn userLastName
-    , userIsStaff = fromColumn userIsStaff
-    , userCreatedAt = fromColumn userCreatedAt
-    , userAuth = unpack auth ()
-    }
-  pack user@Model.User {..} _ = (providedUser, undefined)
+      { userId = Model.Id $ fromPK userId
+      , userFirstName = fromColumn userFirstName
+      , userLastName = fromColumn userLastName
+      , userIsStaff = fromColumn userIsStaff
+      , userCreatedAt = fromColumn userCreatedAt
+      , userAuth = unpack auth ()
+      }
+  pack user@Model.User {..} _ = (providedUser, auth)
     where
       auth = pack userAuth user
       providedUser =
         User
-        { userId = PrimaryKey (Model.fromId userId)
-        , userFirstName = Column userFirstName
-        , userLastName = Column userLastName
-        , userCreatedAt = Column userCreatedAt
-        , userIsStaff = Column userIsStaff
-        }
+          { userId = PrimaryKey (Model.fromId userId)
+          , userFirstName = Column userFirstName
+          , userLastName = Column userLastName
+          , userCreatedAt = Column userCreatedAt
+          , userIsStaff = Column userIsStaff
+          }
+
+type instance ModelOfDataProvider Auth = Model.Auth
 
 instance HasDataProvider Model.Auth where
   type DataProviderModel Model.Auth = Auth
@@ -204,21 +207,21 @@ instance HasDataProvider Model.Auth where
     where
       dbAuth =
         Auth
-        { authId =
-            if Model.isIdEmpty authId
-              then def
-              else PrimaryKey (Model.fromId authId)
-        , authPassword = Column authPassword
-        , authCreatedAt = Column authCreatedAt
-        , authUserId =
-            ForeignKey (PrimaryKey (Model.fromId $ Model.userId user))
-        }
+          { authId =
+              if Model.isIdEmpty authId
+                then def
+                else PrimaryKey (Model.fromId authId)
+          , authPassword = Column authPassword
+          , authCreatedAt = Column authCreatedAt
+          , authUserId =
+              ForeignKey (PrimaryKey (Model.fromId $ Model.userId user))
+          }
   unpack Auth {..} _ =
     Model.Auth
-    { authId = Model.Id $ fromPK authId
-    , authPassword = fromColumn authPassword
-    , authCreatedAt = fromColumn authCreatedAt
-    }
+      { authId = Model.Id $ fromPK authId
+      , authPassword = fromColumn authPassword
+      , authCreatedAt = fromColumn authCreatedAt
+      }
 
 instance HasDataProvider Model.RichPost where
   type DataProviderModel Model.RichPost = BlogPost
@@ -245,20 +248,36 @@ instance HasDataProvider Model.RichPost where
           postsAuthors
   unpack BlogPost {..} authors =
     Model.BlogPost
-    { Model.postId = Model.Id $ fromPK blogPostId
-    , Model.postText = fromColumn blogPostText
-    , Model.postTitle = fromColumn blogPostTitle
-    , Model.postAuthors = map (uncurry unpack) authors
-    }
+      { Model.postId = Model.Id $ fromPK blogPostId
+      , Model.postText = fromColumn blogPostText
+      , Model.postTitle = fromColumn blogPostTitle
+      , Model.postAuthors = map (uncurry unpack) authors
+      }
   pack Model.BlogPost {..} rels = (dpPost, dpAuthors)
     where
       dpPost =
         BlogPost
-        { blogPostId = PrimaryKey $ Model.fromId postId
-        , blogPostText = Column postText
-        , blogPostTitle = Column postTitle
-        }
+          { blogPostId = PrimaryKey $ Model.fromId postId
+          , blogPostText = Column postText
+          , blogPostTitle = Column postTitle
+          }
       dpAuthors = (`pack` rels) <$> postAuthors
+
+type instance ModelOfDataProvider Author = Model.RichAuthor
+
+type instance ModelOfDataProvider BlogPost = Model.RichPost
+
+class MemoryStorable entity where
+  getId :: Proxy entity -> (entity -> Int)
+
+instance MemoryStorable Author where
+  getId _ = fromPK . authorId
+
+instance MemoryStorable BlogPost where
+  getId _ = fromPK . blogPostId
+
+instance DataProvider Handler where
+  type DataProviderTypeClass Handler = MemoryStorable
 
 instance HasDataProvider Model.LightAuthor where
   type DataProviderModel Model.LightAuthor = Author
@@ -267,10 +286,10 @@ instance HasDataProvider Model.LightAuthor where
   type MonadDataProvider Model.LightAuthor = Handler
   unpack Author {..} _ =
     Model.Author
-    { Model.authorId = Model.Id $ fromPK authorId
-    , Model.authorPseudonim = fromColumn authorPseudonim
-    , authorPosts = Model.Unfilled
-    }
+      { Model.authorId = Model.Id $ fromPK authorId
+      , Model.authorPseudonim = fromColumn authorPseudonim
+      , authorPosts = Model.Unfilled
+      }
 
 instance HasDataProvider Model.RichAuthor where
   type DataProviderModel Model.RichAuthor = Author

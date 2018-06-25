@@ -18,7 +18,6 @@ import Servant
 
 class (Generic e, HasDataProvider e) =>
       Resource e
-  | e -> e
   where
   type Api e
   server :: Proxy e -> ServerT (Api e) (MonadDataProvider e)

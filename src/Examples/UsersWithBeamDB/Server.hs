@@ -31,13 +31,13 @@ waiApplication request respond = do
         jwtSettings = defaultJWTSettings jwtSecret
         serverConfig =
           ServerConfig
-          { port = 132
-          , withDSConn = conn
-          , jwtSettings = jwtSettings
-          , cookieSettings = cookieSettings
-          }
+            { port = 132
+            , withDSConn = conn
+            , jwtSettings = jwtSettings
+            , cookieSettings = cookieSettings
+            }
         cfg = serverConfig :. cookieSettings :. jwtSettings :. EmptyContext
-    in serveWithContext serverApi cfg (initServer serverConfig) request respond
+     in serveWithContext serverApi cfg (initServer serverConfig) request respond
 
 initServer :: ServerConfig -> Server FullApi
 initServer config =

@@ -21,7 +21,6 @@ class ( Generic e
       , MonadError ServantErr (MonadDataProvider e)
       ) =>
       HasDeleteMethod e
-  | e -> e
   where
   delete :: Proxy e -> Int -> MonadDataProvider e ()
   delete proxyType entityId = do
