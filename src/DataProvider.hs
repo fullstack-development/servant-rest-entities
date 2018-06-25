@@ -18,8 +18,6 @@ type family PackingResult model where
   PackingResult model = ( DataProviderModel model
                         , PackingResult (ChildRelations model))
 
-type family ModelOfDataProvider dbmodel :: *
-
 type LoadAllConstraint model
    = ( Monad (MonadDataProvider model)
      , DataProviderTypeClass (MonadDataProvider model) (DataProviderModel model)

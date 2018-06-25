@@ -150,8 +150,6 @@ postsAuthors
       (ForeignKey $ PrimaryKey 1)
   ]
 
-type instance ModelOfDataProvider User = Model.User
-
 instance HasDataProvider Model.User where
   type DataProviderModel Model.User = User
   type MonadDataProvider Model.User = Handler
@@ -191,8 +189,6 @@ instance HasDataProvider Model.User where
           , userIsStaff = Column userIsStaff
           }
 
-type instance ModelOfDataProvider Auth = Model.Auth
-
 instance HasDataProvider Model.Auth where
   type DataProviderModel Model.Auth = Auth
   type ParentRelations Model.Auth = Model.User
@@ -228,24 +224,6 @@ instance HasDataProvider Model.RichPost where
   type ParentRelations Model.RichPost = ()
   type ChildRelations Model.RichPost = [Model.LightAuthor]
   type MonadDataProvider Model.RichPost = Handler
-  save = pure
-  deleteById _ _ = pure $ Right ()
-  loadAll _ =
-    catMaybes <$>
-    mapM (loadById (Proxy :: Proxy Model.RichPost) . fromPK . blogPostId) posts
-  loadById _ pk =
-    runMaybeT $ do
-      post <- MaybeT . return . find ((== pk) . fromPK . blogPostId) $ posts
-      let relations = map (swap . ((), )) . filter (existsRel post) $ authors
-      return $ unpack post relations
-    where
-      existsRel BlogPost {..} Author {..} =
-        isJust $
-        find
-          (\AuthorBlogPost {..} ->
-             blogPostId == fromFK authorBlogPostPostId &&
-             authorId == fromFK authorBlogPostAuthorId)
-          postsAuthors
   unpack BlogPost {..} authors =
     Model.BlogPost
       { Model.postId = Model.Id $ fromPK blogPostId
@@ -262,10 +240,6 @@ instance HasDataProvider Model.RichPost where
           , blogPostTitle = Column postTitle
           }
       dpAuthors = (`pack` rels) <$> postAuthors
-
-type instance ModelOfDataProvider Author = Model.RichAuthor
-
-type instance ModelOfDataProvider BlogPost = Model.RichPost
 
 class MemoryStorable entity where
   getId :: Proxy entity -> (entity -> Int)
