@@ -2,11 +2,17 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE FlexibleInstances #-}
 
-module Examples.SimpleUser.DataSource where
+module Examples.SimpleUser.DataSource
+  (
+  ) where
 
+import Control.Monad.Identity
 import Control.Monad.Trans.Maybe
 import Data.List
+import Data.Maybe
 import qualified Data.Text as T
 import Data.Time
 import Servant
@@ -50,6 +56,23 @@ data Auth = Auth
   , authUserId :: ForeignKey (PrimaryKey Int)
   } deriving (Show, Eq)
 
+data BlogPost = BlogPost
+  { blogPostId :: PrimaryKey Int
+  , blogPostText :: Column T.Text
+  , blogPostTitle :: Column T.Text
+  }
+
+data Author = Author
+  { authorId :: PrimaryKey Int
+  , authorPseudonim :: Column T.Text
+  }
+
+data AuthorBlogPost = AuthorBlogPost
+  { authorBlogPostId :: PrimaryKey Int
+  , authorBlogPostPostId :: ForeignKey (PrimaryKey Int)
+  , authorBlogPostAuthorId :: ForeignKey (PrimaryKey Int)
+  }
+
 time = getCurrentTime
 
 users =
@@ -84,6 +107,48 @@ auths =
       }
   ]
 
+authors =
+  [ Author (PrimaryKey 1) (Column "tester 1")
+  , Author (PrimaryKey 2) (Column "tester 2")
+  , Author (PrimaryKey 3) (Column "tester 3")
+  , Author (PrimaryKey 4) (Column "tester 4")
+  ]
+
+posts =
+  [ BlogPost
+      { blogPostId = PrimaryKey 1
+      , blogPostText = Column "Text blog post with test content 1"
+      , blogPostTitle = Column "Test blog post 1"
+      }
+  , BlogPost
+      { blogPostId = PrimaryKey 2
+      , blogPostText = Column "Text blog post with test content 2"
+      , blogPostTitle = Column "Test blog post 2"
+      }
+  ]
+
+postsAuthors
+    -- First post
+ =
+  [ AuthorBlogPost
+      (PrimaryKey 1)
+      (ForeignKey $ PrimaryKey 1)
+      (ForeignKey $ PrimaryKey 1)
+  , AuthorBlogPost
+      (PrimaryKey 2)
+      (ForeignKey $ PrimaryKey 1)
+      (ForeignKey $ PrimaryKey 2)
+  , AuthorBlogPost
+      (PrimaryKey 3)
+      (ForeignKey $ PrimaryKey 1)
+      (ForeignKey $ PrimaryKey 3)
+      -- Second post
+  , AuthorBlogPost
+      (PrimaryKey 3)
+      (ForeignKey $ PrimaryKey 2)
+      (ForeignKey $ PrimaryKey 1)
+  ]
+
 instance HasDataProvider Model.User where
   type DataProviderModel Model.User = User
   type MonadDataProvider Model.User = Handler
@@ -95,26 +160,25 @@ instance HasDataProvider Model.User where
     runMaybeT $ do
       user <- wrap $ find (\u -> fromPK (userId u) == pk) users
       auth <- wrap $ find (\a -> fromFK (authUserId a) == userId user) auths
-      return $ unpack user (Just auth)
+      return $ unpack user (auth, ())
     where
       wrap = MaybeT . return
-  loadAll _ = pure $ map (\u -> unpack u (authFor u)) users
+  loadAll _ = pure $ map (\user -> unpack user (authFor user, ())) users
     where
-      authFor user = find (authByUserId $ userId user) auths
+      authFor user = fromJust $ find (authByUserId $ userId user) auths
       authByUserId id auth = fromFK (authUserId auth) == id
-  unpack User {..} (Just auth) =
+  unpack User {..} (auth, _) =
     Model.User
       { userId = Model.Id $ fromPK userId
       , userFirstName = fromColumn userFirstName
       , userLastName = fromColumn userLastName
       , userIsStaff = fromColumn userIsStaff
       , userCreatedAt = fromColumn userCreatedAt
-      , userAuth = unpack auth Nothing
+      , userAuth = unpack auth ()
       }
-  unpack _ Nothing = error "You should pass all relations to user db converter."
-  pack user@Model.User {..} _ = (providedUser, providedAuth)
+  pack user@Model.User {..} _ = (providedUser, auth)
     where
-      (providedAuth, _) = pack userAuth (Just user)
+      auth = pack userAuth user
       providedUser =
         User
           { userId = PrimaryKey (Model.fromId userId)
@@ -124,17 +188,32 @@ instance HasDataProvider Model.User where
           , userIsStaff = Column userIsStaff
           }
 
+class MemoryStorable entity where
+  getId :: entity -> Int
+  getList :: Proxy entity -> [entity]
+
+instance MemoryStorable Author where
+  getId = fromPK . authorId
+  getList _ = authors
+
+instance MemoryStorable BlogPost where
+  getId = fromPK . blogPostId
+  getList _ = posts
+
+instance MemoryStorable Auth where
+  getId = fromPK . authId
+  getList _ = auths
+
+instance MemoryStorable User where
+  getId = fromPK . userId
+  getList _ = users
+
 instance HasDataProvider Model.Auth where
   type DataProviderModel Model.Auth = Auth
   type ParentRelations Model.Auth = Model.User
   type ChildRelations Model.Auth = ()
   type MonadDataProvider Model.Auth = Handler
-  save = pure
-  deleteById _ _ = pure $ Right ()
-  loadById _ pk =
-    pure $ flip unpack Nothing <$> find (\a -> fromPK (authId a) == pk) auths
-  loadAll _ = pure $ flip unpack Nothing <$> auths
-  pack Model.Auth {..} (Just user) = (dbAuth, ())
+  pack Model.Auth {..} user = (dbAuth, ())
     where
       dbAuth =
         Auth
@@ -153,3 +232,50 @@ instance HasDataProvider Model.Auth where
       , authPassword = fromColumn authPassword
       , authCreatedAt = fromColumn authCreatedAt
       }
+
+instance HasDataProvider Model.RichPost where
+  type DataProviderModel Model.RichPost = BlogPost
+  type ParentRelations Model.RichPost = ()
+  type ChildRelations Model.RichPost = [Model.LightAuthor]
+  type MonadDataProvider Model.RichPost = Handler
+  unpack BlogPost {..} authors =
+    Model.BlogPost
+      { Model.postId = Model.Id $ fromPK blogPostId
+      , Model.postText = fromColumn blogPostText
+      , Model.postTitle = fromColumn blogPostTitle
+      , Model.postAuthors = map (uncurry unpack) authors
+      }
+  pack Model.BlogPost {..} rels = (dpPost, dpAuthors)
+    where
+      dpPost =
+        BlogPost
+          { blogPostId = PrimaryKey $ Model.fromId postId
+          , blogPostText = Column postText
+          , blogPostTitle = Column postTitle
+          }
+      dpAuthors = (`pack` rels) <$> postAuthors
+
+instance HasDataProvider Model.LightAuthor where
+  type DataProviderModel Model.LightAuthor = Author
+  type ChildRelations Model.LightAuthor = ()
+  type ParentRelations Model.LightAuthor = ()
+  type MonadDataProvider Model.LightAuthor = Handler
+  unpack Author {..} _ =
+    Model.Author
+      { Model.authorId = Model.Id $ fromPK authorId
+      , Model.authorPseudonim = fromColumn authorPseudonim
+      , authorPosts = Model.Unfilled
+      }
+
+instance HasDataProvider Model.RichAuthor where
+  type DataProviderModel Model.RichAuthor = Author
+  type ParentRelations Model.RichAuthor = ()
+  type ChildRelations Model.RichAuthor = [Model.LightPost]
+  type MonadDataProvider Model.RichAuthor = Handler
+
+instance DataProvider Handler where
+  type DataProviderTypeClass Handler = MemoryStorable
+  type CreateDataStructure Handler = Identity
+  getAllEntities = pure . getList
+  getEntityById proxy pk = pure $ find ((== pk) . getId) (getList proxy)
+  createEntity _ (Identity model) = pure $ Just model

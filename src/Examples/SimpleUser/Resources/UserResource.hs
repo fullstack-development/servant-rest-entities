@@ -1,28 +1,28 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE DataKinds #-}
-{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DeriveAnyClass #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
-module Examples.UsersWithBeamDB.UserEndpoint where
+module Examples.SimpleUser.Resources.UserResource
+  (
+  ) where
 
 import qualified Data.Aeson as Aeson
-import Data.Proxy
 import qualified Data.Text as T
 import Data.Time
+import Examples.SimpleUser.DataSource ()
 import GHC.Generics
 import Servant
-import Servant.Auth.Server
+import qualified Servant.Auth as ServantAuth
 
-import Examples.UsersWithBeamDB.DataSource ()
-import Examples.UsersWithBeamDB.Model
-import Examples.UsersWithBeamDB.ServerConfig
+import Examples.SimpleUser.Model
 import Model
+import Permissions
 import Resource
 import Routing
 import Serializables
@@ -32,18 +32,11 @@ import WebActions.List
 import WebActions.Retrieve
 import WebActions.Update
 
-data AuthView = AuthView
-  { authViewId :: Int
-  , authViewPassword :: T.Text
-  , authViewCreatedAt :: LocalTime
-  } deriving (Generic, Aeson.ToJSON)
-
 data UserView = UserView
   { userViewId :: Int
   , userViewFirstName :: T.Text
   , userViewLastName :: T.Text
   , userViewIsStaff :: Bool
-  , userViewAuth :: AuthView
   } deriving (Generic, Aeson.ToJSON)
 
 data UserBody = UserBody
@@ -52,13 +45,6 @@ data UserBody = UserBody
   , userBodyIsStaff :: Bool
   , userBodyPassword :: T.Text
   } deriving (Generic, Aeson.FromJSON)
-
-serializeAuthBody Auth {..} =
-  AuthView
-    { authViewId = fromId authId
-    , authViewPassword = authPassword
-    , authViewCreatedAt = authCreatedAt
-    }
 
 deserializeUserView Nothing UserBody {..} = do
   time <- getCurrentTime
@@ -69,12 +55,12 @@ deserializeUserView Nothing UserBody {..} = do
           Auth
             { authId = Empty
             , authPassword = userBodyPassword
-            , authCreatedAt = utcToLocalTime (minutesToTimeZone 0) time
+            , authCreatedAt = time
             }
       , userFirstName = userBodyFirstName
       , userLastName = userBodyLastName
       , userIsStaff = userBodyIsStaff
-      , userCreatedAt = utcToLocalTime (minutesToTimeZone 0) time
+      , userCreatedAt = time
       }
 
 serializeUserView User {..} =
@@ -83,12 +69,7 @@ serializeUserView User {..} =
     , userViewFirstName = userFirstName
     , userViewLastName = userLastName
     , userViewIsStaff = userIsStaff
-    , userViewAuth = serializeAuthBody userAuth
     }
-
-instance ToJWT User
-
-instance FromJWT User
 
 instance Serializable User (CreateActionView User) where
   serialize user = CreateUserView $ serializeUserView user
@@ -131,13 +112,21 @@ instance HasRetrieveMethod User where
   type Requester User = User
   data RetrieveActionView User = RetrieveUserView UserView
                                  deriving (Generic, Aeson.ToJSON)
+  checkEntityPermission (Just user) entity =
+    return (userId user == userId entity)
+  checkEntityPermission _ _ = return False
+
+type Create = CreateApi "users" (CreateActionBody User) (CreateActionView User)
+
+type Update = UpdateApi "users" (UpdateActionBody User) (UpdateActionView User)
+
+type Del = DeleteApi "users"
+
+type List = ListApi "users" (ListActionView User)
+
+type Retrieve
+   = ProtectedApi '[ ServantAuth.JWT] (RetrieveApi "users" (RetrieveActionView User)) User
 
 instance Resource User where
-  type Api User = CreateApi "users" (CreateActionBody User) (CreateActionView User) :<|> DeleteApi "users" :<|> UpdateApi "users" (UpdateActionBody User) (UpdateActionView User) :<|> ListApi "users" (ListActionView User) :<|> RetrieveApi "users" (RetrieveActionView User)
-  server :: Proxy User -> ServerT (Api User) ServerConfigReader
-  server proxyEntity = userServerApi
-
-userServerApi :: ServerT (Api User) ServerConfigReader
-userServerApi = create :<|> delete userProxy :<|> update :<|> list :<|> retrieve
-  where
-    userProxy = Proxy :: Proxy User
+  type Api User = Create :<|> Del :<|> Update :<|> List :<|> Retrieve
+  server p = create :<|> delete p :<|> update :<|> list :<|> retrieve'

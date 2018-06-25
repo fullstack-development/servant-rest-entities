@@ -1,48 +1,26 @@
 {-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE DefaultSignatures #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE FlexibleContexts #-}
 
 module DataProvider where
 
 import Data.Kind
 import Data.Proxy
 
-type family MapDataProviders e where
-  MapDataProviders () = ()
-  MapDataProviders (a, b) = (MapDataProviders a, MapDataProviders b)
-  MapDataProviders (a, b, c) = ( MapDataProviders a
-                               , MapDataProviders b
-                               , MapDataProviders c)
-  MapDataProviders (a, b, c, d) = ( MapDataProviders a
-                                  , MapDataProviders b
-                                  , MapDataProviders c
-                                  , MapDataProviders d)
-  MapDataProviders (a, b, c, d, e) = ( MapDataProviders a
-                                     , MapDataProviders b
-                                     , MapDataProviders c
-                                     , MapDataProviders d
-                                     , MapDataProviders e)
-  MapDataProviders (a, b, c, d, e, h) = ( MapDataProviders a
-                                        , MapDataProviders b
-                                        , MapDataProviders c
-                                        , MapDataProviders d
-                                        , MapDataProviders e
-                                        , MapDataProviders h)
-  MapDataProviders (a, b, c, d, e, h, g) = ( MapDataProviders a
-                                           , MapDataProviders b
-                                           , MapDataProviders c
-                                           , MapDataProviders d
-                                           , MapDataProviders e
-                                           , MapDataProviders h
-                                           , MapDataProviders g)
-  MapDataProviders e = DataProviderModel e
+type family Denormalized model where
+  Denormalized () = ()
+  Denormalized (a, b) = (Denormalized a, Denormalized b)
+  Denormalized (a, b, c) = (Denormalized a, Denormalized b, Denormalized c)
+  Denormalized [model] = [Denormalized model]
+  Denormalized model = ( DataProviderModel model
+                       , Denormalized (ChildRelations model))
 
-type LoadAllConstraint model
+type Loadable model
    = ( Monad (MonadDataProvider model)
      , DataProviderTypeClass (MonadDataProvider model) (DataProviderModel model)
      , DataProvider (MonadDataProvider model))
@@ -53,28 +31,34 @@ class HasDataProvider model where
   type ChildRelations model
   type ParentRelations model
   unpack ::
-       DataProviderModel model
-    -> Maybe (MapDataProviders (ChildRelations model))
-    -> model
-  pack ::
-       model
-    -> Maybe (ParentRelations model)
-    -> (DataProviderModel model, MapDataProviders (ChildRelations model))
+       DataProviderModel model -> Denormalized (ChildRelations model) -> model
+  pack :: model -> ParentRelations model -> Denormalized model
   save :: model -> MonadDataProvider model model
+  --
+  --
   loadById :: Proxy model -> Int -> MonadDataProvider model (Maybe model)
+  default loadById :: Loadable model =>
+    Proxy model -> Int -> MonadDataProvider model (Maybe model)
+  loadById _ pk = do
+    entity <- getEntityById (Proxy :: Proxy (DataProviderModel model)) pk
+    pure $ (`unpack` undefined) <$> entity
+  --
+  --
   loadAll :: Proxy model -> MonadDataProvider model [model]
-  default loadAll :: LoadAllConstraint model =>
+  default loadAll :: Loadable model =>
     Proxy model -> MonadDataProvider model [model]
-  -- TODO: load relations for each model
   loadAll proxyModel = do
     entities <- getAllEntities (Proxy :: Proxy (DataProviderModel model))
-    let models = (`unpack` Nothing) <$> entities
-    return models
+    pure $ (`unpack` undefined) <$> entities
+  --
+  --
   deleteById :: Proxy model -> Int -> MonadDataProvider model (Either String ())
 
 class HasDataSourceRun (actionMonad :: * -> *) (dsMonad :: * -> *) where
   runDS :: dsMonad a -> actionMonad a
 
+-- Need to be implemented by concrete relevant data 
+-- source backend (db, http services, memory and etc.)
 class DataProvider dp where
   type DataProviderTypeClass dp :: * -> Constraint
   type CreateDataStructure dp :: * -> *

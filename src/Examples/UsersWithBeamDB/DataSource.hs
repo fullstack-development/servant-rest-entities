@@ -72,36 +72,35 @@ instance HasDataProvider User where
   type ChildRelations User = Auth
   type ParentRelations User = ()
   loadAll _ =
-    map (\(user, auth) -> unpack user (Just auth)) <$> runDS selectUsersWithAuth
+    map (\(user, auth) -> unpack user (auth, ())) <$> runDS selectUsersWithAuth
   save user = do
     (savedUser, savedAuth) <- saveUserFromModel user
-    return $ unpack savedUser (Just savedAuth)
+    return $ unpack savedUser (savedAuth, ())
   deleteById _ = runDS . deleteUserFromDB
   loadById _ pk = do
     result <- runDS . getUserByIdWithAuth $ pk
     let entity =
-          maybe Nothing (\(user, auth) -> Just $ unpack user (Just auth)) result
+          maybe Nothing (\(user, auth) -> Just $ unpack user (auth, ())) result
     return entity
-  pack User {..} _ =
-    ( DB.User
-        (fromId userId)
-        userFirstName
-        userLastName
-        userCreatedAt
-        userIsStaff
-        (DB.AuthId $ fromId $ authId userAuth)
-    , DB.Auth
-        (fromId $ authId userAuth)
-        (authPassword userAuth)
-        (authCreatedAt userAuth))
-  unpack DB.User {..} (Just auth) =
+  pack user@User {..} _ = (dpUser, dpAuth)
+    where
+      dpUser =
+        DB.User
+          (fromId userId)
+          userFirstName
+          userLastName
+          userCreatedAt
+          userIsStaff
+          (DB.AuthId $ fromId $ authId userAuth)
+      dpAuth = pack userAuth user
+  unpack DB.User {..} relations =
     User
       (Id _userId)
       _userFirstName
       _userLastName
       _userCreatedAt
       _userIsStaff
-      (unpack auth Nothing)
+      (uncurry unpack relations)
 
 instance HasDataProvider Auth where
   type DataProviderModel Auth = DB.Auth

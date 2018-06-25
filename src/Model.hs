@@ -11,6 +11,9 @@ data Id a
   | Id a
   deriving (Show, Eq, Generic, FromJSON, ToJSON)
 
+data NotRich =
+  Unfilled
+
 fromId (Id v) = v
 fromId Empty = error "Could not unpack empty id of model"
 
