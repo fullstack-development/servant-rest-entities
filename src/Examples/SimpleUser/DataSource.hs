@@ -189,16 +189,26 @@ instance HasDataProvider Model.User where
           , userIsStaff = Column userIsStaff
           }
 
+class MemoryStorable entity where
+  getId :: Proxy entity -> (entity -> Int)
+
+instance MemoryStorable Author where
+  getId _ = fromPK . authorId
+
+instance MemoryStorable BlogPost where
+  getId _ = fromPK . blogPostId
+
+instance MemoryStorable Auth where
+  getId _ = fromPK . authId
+
+instance MemoryStorable User where
+  getId _ = fromPK . userId
+
 instance HasDataProvider Model.Auth where
   type DataProviderModel Model.Auth = Auth
   type ParentRelations Model.Auth = Model.User
   type ChildRelations Model.Auth = ()
   type MonadDataProvider Model.Auth = Handler
-  save = pure
-  deleteById _ _ = pure $ Right ()
-  loadById _ pk =
-    pure $ (`unpack` ()) <$> find ((== pk) . fromPK . authId) auths
-  loadAll _ = pure $ (`unpack` ()) <$> auths
   pack Model.Auth {..} user = (dbAuth, ())
     where
       dbAuth =
@@ -241,17 +251,9 @@ instance HasDataProvider Model.RichPost where
           }
       dpAuthors = (`pack` rels) <$> postAuthors
 
-class MemoryStorable entity where
-  getId :: Proxy entity -> (entity -> Int)
-
-instance MemoryStorable Author where
-  getId _ = fromPK . authorId
-
-instance MemoryStorable BlogPost where
-  getId _ = fromPK . blogPostId
-
 instance DataProvider Handler where
   type DataProviderTypeClass Handler = MemoryStorable
+  type CreateDataStructure Handler = Maybe
 
 instance HasDataProvider Model.LightAuthor where
   type DataProviderModel Model.LightAuthor = Author
