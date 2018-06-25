@@ -46,69 +46,72 @@ data UserBody = UserBody
   , userBodyPassword :: T.Text
   } deriving (Generic, Aeson.FromJSON)
 
-deserializeUserBody Nothing UserBody {..} = do
+deserializeUserView Nothing UserBody {..} = do
   time <- getCurrentTime
   return
     User
-    { userId = Empty
-    , userAuth =
-        Auth
-        {authId = Empty, authPassword = userBodyPassword, authCreatedAt = time}
-    , userFirstName = userBodyFirstName
-    , userLastName = userBodyLastName
-    , userIsStaff = userBodyIsStaff
-    , userCreatedAt = time
+      { userId = Empty
+      , userAuth =
+          Auth
+            { authId = Empty
+            , authPassword = userBodyPassword
+            , authCreatedAt = time
+            }
+      , userFirstName = userBodyFirstName
+      , userLastName = userBodyLastName
+      , userIsStaff = userBodyIsStaff
+      , userCreatedAt = time
+      }
+
+serializeUserView User {..} =
+  UserView
+    { userViewId = fromId userId
+    , userViewFirstName = userFirstName
+    , userViewLastName = userLastName
+    , userViewIsStaff = userIsStaff
     }
 
-serializeUserBody User {..} =
-  UserView
-  { userViewId = fromId userId
-  , userViewFirstName = userFirstName
-  , userViewLastName = userLastName
-  , userViewIsStaff = userIsStaff
-  }
-
 instance Serializable User (CreateActionView User) where
-  serialize user = CreateUserView $ serializeUserBody user
+  serialize user = CreateUserView $ serializeUserView user
 
 instance Deserializable User (CreateActionBody User) where
-  deserialize pk (CreateUserBody userBody) = deserializeUserBody pk userBody
+  deserialize pk (CreateUserBody userBody) = deserializeUserView pk userBody
 
 instance Serializable User (UpdateActionView User) where
-  serialize user = UpdateUserView $ serializeUserBody user
+  serialize user = UpdateUserView $ serializeUserView user
 
 instance Deserializable User (UpdateActionBody User) where
-  deserialize pk (UpdateUserBody userBody) = deserializeUserBody pk userBody
+  deserialize pk (UpdateUserBody userBody) = deserializeUserView pk userBody
 
 instance Serializable User (ListActionView User) where
-  serialize user = ListUserView $ serializeUserBody user
+  serialize user = ListUserView $ serializeUserView user
 
 instance Serializable User (RetrieveActionView User) where
-  serialize user = RetrieveUserView $ serializeUserBody user
+  serialize user = RetrieveUserView $ serializeUserView user
 
 instance HasCreateMethod User where
   type Requester User = User
   data CreateActionBody User = CreateUserBody UserBody
-                           deriving (Generic, Aeson.FromJSON)
+                               deriving (Generic, Aeson.FromJSON)
   data CreateActionView User = CreateUserView UserView
-                           deriving (Generic, Aeson.ToJSON)
+                               deriving (Generic, Aeson.ToJSON)
 
 instance HasUpdateMethod User where
   data UpdateActionBody User = UpdateUserBody UserBody
-                           deriving (Generic, Aeson.FromJSON)
+                               deriving (Generic, Aeson.FromJSON)
   data UpdateActionView User = UpdateUserView UserView
-                           deriving (Generic, Aeson.ToJSON)
+                               deriving (Generic, Aeson.ToJSON)
 
 instance HasDeleteMethod User
 
 instance HasListMethod User where
   data ListActionView User = ListUserView UserView
-                         deriving (Generic, Aeson.ToJSON)
+                             deriving (Generic, Aeson.ToJSON)
 
 instance HasRetrieveMethod User where
   type Requester User = User
   data RetrieveActionView User = RetrieveUserView UserView
-                             deriving (Generic, Aeson.ToJSON)
+                                 deriving (Generic, Aeson.ToJSON)
   checkEntityPermission (Just user) entity =
     return (userId user == userId entity)
   checkEntityPermission _ _ = return False

@@ -60,7 +60,7 @@ serializeAuthBody Auth {..} =
     , authViewCreatedAt = authCreatedAt
     }
 
-deserializeUserBody Nothing UserBody {..} = do
+deserializeUserView Nothing UserBody {..} = do
   time <- getCurrentTime
   return
     User
@@ -77,7 +77,7 @@ deserializeUserBody Nothing UserBody {..} = do
       , userCreatedAt = utcToLocalTime (minutesToTimeZone 0) time
       }
 
-serializeUserBody User {..} =
+serializeUserView User {..} =
   UserView
     { userViewId = fromId userId
     , userViewFirstName = userFirstName
@@ -91,22 +91,22 @@ instance ToJWT User
 instance FromJWT User
 
 instance Serializable User (CreateActionView User) where
-  serialize user = CreateUserView $ serializeUserBody user
+  serialize user = CreateUserView $ serializeUserView user
 
 instance Deserializable User (CreateActionBody User) where
-  deserialize pk (CreateUserBody userBody) = deserializeUserBody pk userBody
+  deserialize pk (CreateUserBody userBody) = deserializeUserView pk userBody
 
 instance Serializable User (UpdateActionView User) where
-  serialize user = UpdateUserView $ serializeUserBody user
+  serialize user = UpdateUserView $ serializeUserView user
 
 instance Deserializable User (UpdateActionBody User) where
-  deserialize pk (UpdateUserBody userBody) = deserializeUserBody pk userBody
+  deserialize pk (UpdateUserBody userBody) = deserializeUserView pk userBody
 
 instance Serializable User (ListActionView User) where
-  serialize user = ListUserView $ serializeUserBody user
+  serialize user = ListUserView $ serializeUserView user
 
 instance Serializable User (RetrieveActionView User) where
-  serialize user = RetrieveUserView $ serializeUserBody user
+  serialize user = RetrieveUserView $ serializeUserView user
 
 instance HasCreateMethod User where
   type Requester User = User
