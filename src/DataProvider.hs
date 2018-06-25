@@ -6,6 +6,7 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
 
 module DataProvider where
 
@@ -25,7 +26,20 @@ type Loadable model
      , DataProviderTypeClass (MonadDataProvider model) (DataProviderModel model)
      , DataProvider (MonadDataProvider model))
 
-class HasDataProvider model where
+class HasRelationsProvider a where
+  type Result a
+  loadRelationsById :: Proxy a -> Int -> Result a
+
+instance (HasRelationsProvider a, HasRelationsProvider b) =>
+         HasRelationsProvider (a, b) where
+  type Result (a, b) = (Result a, Result b)
+  loadRelationsById _ pk =
+    ( loadRelationsById (Proxy :: Proxy a) pk
+    , loadRelationsById (Proxy :: Proxy b) pk)
+
+class (HasRelationsProvider (ChildRelations model)) =>
+      HasDataProvider model
+  where
   type DataProviderModel model
   type MonadDataProvider model :: * -> *
   type ChildRelations model
@@ -41,7 +55,11 @@ class HasDataProvider model where
     Proxy model -> Int -> MonadDataProvider model (Maybe model)
   loadById _ pk = do
     entity <- getEntityById (Proxy :: Proxy (DataProviderModel model)) pk
-    pure $ (`unpack` undefined) <$> entity
+    case entity of
+      Just e -> do
+        relations <- getRelated (Proxy :: Proxy model) e
+        return $ (`unpack` relations) <$> entity
+      _ -> return Nothing
   --
   --
   loadAll :: Proxy model -> MonadDataProvider model [model]
@@ -49,10 +67,20 @@ class HasDataProvider model where
     Proxy model -> MonadDataProvider model [model]
   loadAll proxyModel = do
     entities <- getAllEntities (Proxy :: Proxy (DataProviderModel model))
-    pure $ (`unpack` undefined) <$> entities
+    relations <- mapM (getRelated (Proxy :: Proxy model)) entities
+    let denormalized = zip entities relations
+    let models = map (uncurry unpack) denormalized
+    return models
   --
   --
   deleteById :: Proxy model -> Int -> MonadDataProvider model (Either String ())
+  getRelated ::
+       Proxy model
+    -> DataProviderModel model
+    -> MonadDataProvider model (Denormalized (ChildRelations model))
+  getRelated dpModel = do
+    let rels = loadRelationsById (Proxy :: Proxy (ChildRelations model))
+    return undefined
 
 class HasDataSourceRun (actionMonad :: * -> *) (dsMonad :: * -> *) where
   runDS :: dsMonad a -> actionMonad a

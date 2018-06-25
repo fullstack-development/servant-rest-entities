@@ -188,26 +188,6 @@ instance HasDataProvider Model.User where
           , userIsStaff = Column userIsStaff
           }
 
-class MemoryStorable entity where
-  getId :: entity -> Int
-  getList :: Proxy entity -> [entity]
-
-instance MemoryStorable Author where
-  getId = fromPK . authorId
-  getList _ = authors
-
-instance MemoryStorable BlogPost where
-  getId = fromPK . blogPostId
-  getList _ = posts
-
-instance MemoryStorable Auth where
-  getId = fromPK . authId
-  getList _ = auths
-
-instance MemoryStorable User where
-  getId = fromPK . userId
-  getList _ = users
-
 instance HasDataProvider Model.Auth where
   type DataProviderModel Model.Auth = Auth
   type ParentRelations Model.Auth = Model.User
@@ -279,3 +259,23 @@ instance DataProvider Handler where
   getAllEntities = pure . getList
   getEntityById proxy pk = pure $ find ((== pk) . getId) (getList proxy)
   createEntity _ (Identity model) = pure $ Just model
+
+class MemoryStorable entity where
+  getId :: entity -> Int
+  getList :: Proxy entity -> [entity]
+
+instance MemoryStorable Author where
+  getId = fromPK . authorId
+  getList _ = authors
+
+instance MemoryStorable BlogPost where
+  getId = fromPK . blogPostId
+  getList _ = posts
+
+instance MemoryStorable Auth where
+  getId = fromPK . authId
+  getList _ = auths
+
+instance MemoryStorable User where
+  getId = fromPK . userId
+  getList _ = users
