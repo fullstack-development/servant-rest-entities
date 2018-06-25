@@ -84,8 +84,6 @@ auths =
       }
   ]
 
-type instance ModelOfDataProvider User = Model.User
-
 instance HasDataProvider Model.User where
   type DataProviderModel Model.User = User
   type MonadDataProvider Model.User = Handler
@@ -125,8 +123,6 @@ instance HasDataProvider Model.User where
           , userCreatedAt = Column userCreatedAt
           , userIsStaff = Column userIsStaff
           }
-
-type instance ModelOfDataProvider Auth = Model.Auth
 
 instance HasDataProvider Model.Auth where
   type DataProviderModel Model.Auth = Auth

@@ -42,16 +42,12 @@ type family MapDataProviders e where
                                            , MapDataProviders g)
   MapDataProviders e = DataProviderModel e
 
-type family ModelOfDataProvider dbmodel :: *
-
 type LoadAllConstraint model
    = ( Monad (MonadDataProvider model)
      , DataProviderTypeClass (MonadDataProvider model) (DataProviderModel model)
      , DataProvider (MonadDataProvider model))
 
-class (ModelOfDataProvider (DataProviderModel model) ~ model) =>
-      HasDataProvider model
-  where
+class HasDataProvider model where
   type DataProviderModel model
   type MonadDataProvider model :: * -> *
   type ChildRelations model
