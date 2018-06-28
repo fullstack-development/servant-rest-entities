@@ -69,7 +69,7 @@ deleteUserFromDB entityId =
 instance HasDataProvider User where
   type DataProviderModel User = DB.User
   type MonadDataProvider User = ServerConfigReader
-  type ChildRelations User = Auth
+  type ChildRelations User = SingleChild Auth
   type ParentRelations User = ()
   loadAll _ =
     map (\(user, auth) -> unpack user (auth, ())) <$> runDS selectUsersWithAuth
@@ -105,10 +105,11 @@ instance HasDataProvider User where
 instance HasDataProvider Auth where
   type DataProviderModel Auth = DB.Auth
   type MonadDataProvider Auth = ServerConfigReader
-  type ChildRelations Auth = ()
+  type ChildRelations Auth = EmptyChild
   type ParentRelations Auth = User
   save user = pure undefined
   deleteById _ _ = pure undefined
   loadById _ _ = pure Nothing
+  getRelated = undefined
   pack user rels = undefined
   unpack DB.Auth {..} _ = Auth (Id _authId) _authPassword _authCreatedAt

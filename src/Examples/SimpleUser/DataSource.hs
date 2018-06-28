@@ -152,7 +152,7 @@ postsAuthors
 instance HasDataProvider Model.User where
   type DataProviderModel Model.User = User
   type MonadDataProvider Model.User = Handler
-  type ChildRelations Model.User = Model.Auth
+  type ChildRelations Model.User = SingleChild Model.Auth
   type ParentRelations Model.User = ()
   save = pure
   deleteById _ _ = pure $ Right ()
@@ -191,7 +191,7 @@ instance HasDataProvider Model.User where
 instance HasDataProvider Model.Auth where
   type DataProviderModel Model.Auth = Auth
   type ParentRelations Model.Auth = Model.User
-  type ChildRelations Model.Auth = ()
+  type ChildRelations Model.Auth = EmptyChild
   type MonadDataProvider Model.Auth = Handler
   pack Model.Auth {..} user = (dbAuth, ())
     where
@@ -216,7 +216,7 @@ instance HasDataProvider Model.Auth where
 instance HasDataProvider Model.RichPost where
   type DataProviderModel Model.RichPost = BlogPost
   type ParentRelations Model.RichPost = ()
-  type ChildRelations Model.RichPost = [Model.LightAuthor]
+  type ChildRelations Model.RichPost = ManyChildren Model.LightAuthor
   type MonadDataProvider Model.RichPost = Handler
   unpack BlogPost {..} authors =
     Model.BlogPost
@@ -235,9 +235,22 @@ instance HasDataProvider Model.RichPost where
           }
       dpAuthors = (`pack` rels) <$> postAuthors
 
+instance HasDataProvider Model.LightPost where
+  type DataProviderModel Model.LightPost = BlogPost
+  type ParentRelations Model.LightPost = ()
+  type ChildRelations Model.LightPost = ManyChildren Model.LightAuthor
+  type MonadDataProvider Model.LightPost = Handler
+  unpack BlogPost {..} authors =
+    Model.BlogPost
+      { Model.postId = Model.Id $ fromPK blogPostId
+      , Model.postText = fromColumn blogPostText
+      , Model.postTitle = fromColumn blogPostTitle
+      , Model.postAuthors = Model.Unfilled
+      }
+
 instance HasDataProvider Model.LightAuthor where
   type DataProviderModel Model.LightAuthor = Author
-  type ChildRelations Model.LightAuthor = ()
+  type ChildRelations Model.LightAuthor = EmptyChild
   type ParentRelations Model.LightAuthor = ()
   type MonadDataProvider Model.LightAuthor = Handler
   unpack Author {..} _ =
@@ -250,7 +263,7 @@ instance HasDataProvider Model.LightAuthor where
 instance HasDataProvider Model.RichAuthor where
   type DataProviderModel Model.RichAuthor = Author
   type ParentRelations Model.RichAuthor = ()
-  type ChildRelations Model.RichAuthor = [Model.LightPost]
+  type ChildRelations Model.RichAuthor = ManyChildren Model.LightPost
   type MonadDataProvider Model.RichAuthor = Handler
 
 instance DataProvider Handler where
