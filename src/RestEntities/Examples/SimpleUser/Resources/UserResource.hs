@@ -8,29 +8,29 @@
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
-module Examples.SimpleUser.Resources.UserResource
+module RestEntities.Examples.SimpleUser.Resources.UserResource
   (
   ) where
 
 import qualified Data.Aeson as Aeson
 import qualified Data.Text as T
 import Data.Time
-import Examples.SimpleUser.DataSource ()
 import GHC.Generics
 import Servant
 import qualified Servant.Auth as ServantAuth
 
-import Examples.SimpleUser.Model
-import Model
-import Permissions
-import Resource
-import Routing
-import Serializables
-import WebActions.Create
-import WebActions.Delete
-import WebActions.List
-import WebActions.Retrieve
-import WebActions.Update
+import RestEntities.Examples.SimpleUser.DataSource ()
+import RestEntities.Examples.SimpleUser.Model
+import RestEntities.Model
+import RestEntities.Permissions
+import RestEntities.Resource
+import RestEntities.Routing
+import RestEntities.Serializables
+import RestEntities.WebActions.Create
+import RestEntities.WebActions.Delete
+import RestEntities.WebActions.List
+import RestEntities.WebActions.Retrieve
+import RestEntities.WebActions.Update
 
 data UserView = UserView
   { userViewId :: Int

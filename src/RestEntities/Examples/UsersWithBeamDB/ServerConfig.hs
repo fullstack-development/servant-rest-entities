@@ -6,7 +6,7 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
-module Examples.UsersWithBeamDB.ServerConfig where
+module RestEntities.Examples.UsersWithBeamDB.ServerConfig where
 
 import Control.Monad.Catch hiding (Handler)
 import Control.Monad.Except
@@ -15,7 +15,7 @@ import Database.Beam.Postgres (Pg)
 import Servant
 import Servant.Auth.Server
 
-import DataProvider
+import RestEntities.DataProvider
 
 data ServerConfig = ServerConfig
   { port :: Int

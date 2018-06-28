@@ -1,7 +1,7 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DeriveAnyClass #-}
 
-module Examples.SimpleUser.Model
+module RestEntities.Examples.SimpleUser.Model
   ( User(..)
   , Auth(..)
   , BlogPost(..)
@@ -17,7 +17,7 @@ import qualified Data.Text as T
 import Data.Time.Clock
 import GHC.Generics
 
-import Model
+import RestEntities.Model
 
 data User = User
   { userId :: Id Int

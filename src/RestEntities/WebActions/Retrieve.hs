@@ -1,19 +1,18 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
-module WebActions.Retrieve where
+module RestEntities.WebActions.Retrieve where
 
 import Control.Monad
 import Control.Monad.Except
 import Data.Maybe
 import GHC.Generics
 
-import DataProvider
-import Permissions
-import Serializables
+import RestEntities.DataProvider
+import RestEntities.Permissions
+import RestEntities.Serializables
 import Servant
 import Servant.Auth.Server
 

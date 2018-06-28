@@ -9,7 +9,7 @@
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
-module Examples.SimpleUser.Handlers.Login
+module RestEntities.Examples.SimpleUser.Handlers.Login
   ( login
   , LoginAPI
   ) where
@@ -21,10 +21,10 @@ import qualified Data.ByteString.Char8 as Char8
 import qualified Data.CaseInsensitive as CI
 import qualified Data.List as L
 import qualified Data.Text as T
-import DataProvider
-import Examples.SimpleUser.DataSource ()
-import Examples.SimpleUser.Model
 import GHC.Generics
+import RestEntities.DataProvider
+import RestEntities.Examples.SimpleUser.DataSource ()
+import RestEntities.Examples.SimpleUser.Model
 import Servant
 import Servant.Auth.Server
 import qualified Web.Cookie as Cookie

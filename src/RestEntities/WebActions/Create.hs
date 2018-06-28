@@ -2,17 +2,16 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE FunctionalDependencies #-}
 
-module WebActions.Create where
+module RestEntities.WebActions.Create where
 
 import Control.Monad.Except
 import GHC.Generics
 import Servant
 
-import DataProvider
-import Permissions
-import Serializables
+import RestEntities.DataProvider
+import RestEntities.Permissions
+import RestEntities.Serializables
 
 class ( Generic e
       , Deserializable e (CreateActionBody e)

@@ -8,7 +8,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE RecordWildCards #-}
 
-module Examples.SimpleUser.Resources.PostResource
+module RestEntities.Examples.SimpleUser.Resources.PostResource
   (
   ) where
 
@@ -17,13 +17,13 @@ import qualified Data.Text as T
 import Data.Void
 import GHC.Generics
 
-import Examples.SimpleUser.DataSource ()
-import Examples.SimpleUser.Model
-import Model
-import Resource
-import Routing
-import Serializables
-import WebActions.Retrieve
+import RestEntities.Examples.SimpleUser.DataSource ()
+import RestEntities.Examples.SimpleUser.Model
+import RestEntities.Model
+import RestEntities.Resource
+import RestEntities.Routing
+import RestEntities.Serializables
+import RestEntities.WebActions.Retrieve
 
 data PostView = PostView
   { postId :: Int

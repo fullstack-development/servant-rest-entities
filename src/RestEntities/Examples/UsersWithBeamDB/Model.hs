@@ -1,14 +1,14 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DeriveAnyClass #-}
 
-module Examples.UsersWithBeamDB.Model where
+module RestEntities.Examples.UsersWithBeamDB.Model where
 
 import Data.Aeson
 import qualified Data.Text as T
 import Data.Time.LocalTime
 import GHC.Generics
 
-import Model
+import RestEntities.Model
 
 data User = User
   { userId :: Id Int

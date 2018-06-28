@@ -11,7 +11,7 @@
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE UndecidableInstances #-}
 
-module DataProvider where
+module RestEntities.DataProvider where
 
 import Data.Kind
 import Data.Proxy

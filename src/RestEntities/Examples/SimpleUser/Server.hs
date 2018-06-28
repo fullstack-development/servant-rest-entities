@@ -5,7 +5,7 @@
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
-module Examples.SimpleUser.Server
+module RestEntities.Examples.SimpleUser.Server
   ( runUserService
   ) where
 
@@ -15,11 +15,11 @@ import Network.Wai.Handler.Warp
 import Servant
 import Servant.Auth.Server
 
-import Examples.SimpleUser.Handlers.Login (LoginAPI, login)
-import Examples.SimpleUser.Model
-import Examples.SimpleUser.Resources.PostResource ()
-import Examples.SimpleUser.Resources.UserResource ()
-import Resource
+import RestEntities.Examples.SimpleUser.Handlers.Login (LoginAPI, login)
+import RestEntities.Examples.SimpleUser.Model
+import RestEntities.Examples.SimpleUser.Resources.PostResource ()
+import RestEntities.Examples.SimpleUser.Resources.UserResource ()
+import RestEntities.Resource
 
 fullApi cs jwts =
   server (Proxy :: Proxy User) :<|> login cs jwts :<|>

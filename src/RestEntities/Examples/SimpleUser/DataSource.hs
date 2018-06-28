@@ -5,7 +5,7 @@
 {-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE FlexibleInstances #-}
 
-module Examples.SimpleUser.DataSource
+module RestEntities.Examples.SimpleUser.DataSource
   (
   ) where
 
@@ -17,9 +17,9 @@ import qualified Data.Text as T
 import Data.Time
 import Servant
 
-import DataProvider
-import qualified Examples.SimpleUser.Model as Model
-import qualified Model
+import RestEntities.DataProvider
+import qualified RestEntities.Examples.SimpleUser.Model as Model
+import qualified RestEntities.Model as Model
 
 def = error "Default does not exist"
 
@@ -251,6 +251,9 @@ instance HasDataProvider Model.LightPost where
       , Model.postTitle = fromColumn blogPostTitle
       , Model.postAuthors = Model.Unfilled
       }
+  pack = undefined
+  save = undefined
+  deleteById = undefined
 
 instance HasDataProvider Model.LightAuthor where
   type DataProviderModel Model.LightAuthor = Author

@@ -1,3 +1,3 @@
-# Changelog for user-service
+# Changelog for servant-rest-entities
 
 ## Unreleased changes

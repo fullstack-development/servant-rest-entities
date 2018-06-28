@@ -47,7 +47,7 @@ library:
     - -Wunused-imports
 
 executables:
-  user-service-exe:
+  servant-rest-entities-exe:
     main:                Main.hs
     source-dirs:         app
     ghc-options:
@@ -56,10 +56,10 @@ executables:
     - -with-rtsopts=-N
     - -Wunused-imports
     dependencies:
-    - user-service
+    - servant-rest-entities
 
 tests:
-  user-service-test:
+  servant-rest-entities-test:
     main:                Spec.hs
     source-dirs:         test
     ghc-options:
@@ -67,4 +67,4 @@ tests:
     - -rtsopts
     - -with-rtsopts=-N
     dependencies:
-    - user-service
+    - servant-rest-entities

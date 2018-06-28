@@ -1,5 +1,5 @@
 .stack-work/
-user-service.cabal
+servant-rest-entities.cabal
 *~
 .idea
 .vscode

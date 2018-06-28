@@ -1,7 +1,7 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DeriveAnyClass #-}
 
-module Model where
+module RestEntities.Model where
 
 import Data.Aeson
 import GHC.Generics

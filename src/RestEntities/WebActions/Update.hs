@@ -1,10 +1,9 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
-module WebActions.Update where
+module RestEntities.WebActions.Update where
 
 import Control.Monad.Except
 import Data.Maybe
@@ -12,9 +11,9 @@ import Data.Void
 import GHC.Generics
 import Servant
 
-import DataProvider
-import Permissions
-import Serializables
+import RestEntities.DataProvider
+import RestEntities.Permissions
+import RestEntities.Serializables
 
 class ( Generic e
       , Deserializable e (UpdateActionBody e)

@@ -4,16 +4,14 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeOperators #-}
-{-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE GADTs #-}
 
-module Resource where
+module RestEntities.Resource where
 
-import DataProvider
 import GHC.Generics
+import RestEntities.DataProvider
 import Servant
 
 class (Generic e, HasDataProvider e) =>

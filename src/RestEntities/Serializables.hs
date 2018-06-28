@@ -5,7 +5,7 @@
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE FunctionalDependencies #-}
 
-module Serializables where
+module RestEntities.Serializables where
 
 class Serializable e to | to -> e where
   serialize :: e -> to

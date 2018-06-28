@@ -5,7 +5,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE TypeOperators #-}
 
-module Examples.UsersWithBeamDB.Server
+module RestEntities.Examples.UsersWithBeamDB.Server
   ( runUsersWithBeamExample
   ) where
 
@@ -15,11 +15,11 @@ import Network.Wai.Handler.Warp
 import Servant
 import Servant.Auth.Server
 
-import Examples.UsersWithBeamDB.Model
-import Examples.UsersWithBeamDB.RunDB
-import Examples.UsersWithBeamDB.ServerConfig
-import Examples.UsersWithBeamDB.UserEndpoint ()
-import Resource
+import RestEntities.Examples.UsersWithBeamDB.Model
+import RestEntities.Examples.UsersWithBeamDB.RunDB
+import RestEntities.Examples.UsersWithBeamDB.ServerConfig
+import RestEntities.Examples.UsersWithBeamDB.UserEndpoint ()
+import RestEntities.Resource
 
 type FullApi = Api User
 

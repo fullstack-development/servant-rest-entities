@@ -5,7 +5,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 
-module Examples.UsersWithBeamDB.RunDB where
+module RestEntities.Examples.UsersWithBeamDB.RunDB where
 
 import Control.Exception (bracket)
 

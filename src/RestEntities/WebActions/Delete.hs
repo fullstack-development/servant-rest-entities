@@ -1,10 +1,9 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
-module WebActions.Delete where
+module RestEntities.WebActions.Delete where
 
 import Control.Monad.Except
 import qualified Data.ByteString.Lazy.Char8 as BL
@@ -12,8 +11,8 @@ import Data.Void
 import GHC.Generics
 import Servant
 
-import DataProvider
-import Permissions
+import RestEntities.DataProvider
+import RestEntities.Permissions
 
 class ( Generic e
       , HasDataProvider e

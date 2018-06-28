@@ -1,6 +1,6 @@
 {-# LANGUAGE TypeOperators #-}
 
-module Permissions where
+module RestEntities.Permissions where
 
 import Data.Proxy
 import Servant

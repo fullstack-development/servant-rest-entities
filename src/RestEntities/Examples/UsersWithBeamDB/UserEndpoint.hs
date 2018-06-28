@@ -9,7 +9,7 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DeriveAnyClass #-}
 
-module Examples.UsersWithBeamDB.UserEndpoint where
+module RestEntities.Examples.UsersWithBeamDB.UserEndpoint where
 
 import qualified Data.Aeson as Aeson
 import Data.Proxy
@@ -19,18 +19,18 @@ import GHC.Generics
 import Servant
 import Servant.Auth.Server
 
-import Examples.UsersWithBeamDB.DataSource ()
-import Examples.UsersWithBeamDB.Model
-import Examples.UsersWithBeamDB.ServerConfig
-import Model
-import Resource
-import Routing
-import Serializables
-import WebActions.Create
-import WebActions.Delete
-import WebActions.List
-import WebActions.Retrieve
-import WebActions.Update
+import RestEntities.Examples.UsersWithBeamDB.DataSource ()
+import RestEntities.Examples.UsersWithBeamDB.Model
+import RestEntities.Examples.UsersWithBeamDB.ServerConfig
+import RestEntities.Model
+import RestEntities.Resource
+import RestEntities.Routing
+import RestEntities.Serializables
+import RestEntities.WebActions.Create
+import RestEntities.WebActions.Delete
+import RestEntities.WebActions.List
+import RestEntities.WebActions.Retrieve
+import RestEntities.WebActions.Update
 
 data AuthView = AuthView
   { authViewId :: Int

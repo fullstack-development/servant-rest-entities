@@ -8,7 +8,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 
-module Examples.UsersWithBeamDB.Database where
+module RestEntities.Examples.UsersWithBeamDB.Database where
 
 import Data.Text (Text)
 import Data.Time

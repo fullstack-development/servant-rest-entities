@@ -1,6 +1,6 @@
 module Main where
 
-import Examples.SimpleUser.Server
+import RestEntities.Examples.SimpleUser.Server
 
 main :: IO ()
 main = runUserService

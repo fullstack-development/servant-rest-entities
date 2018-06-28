@@ -4,7 +4,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE TypeFamilies #-}
 
-module Routing where
+module RestEntities.Routing where
 
 import GHC.TypeLits (Symbol)
 

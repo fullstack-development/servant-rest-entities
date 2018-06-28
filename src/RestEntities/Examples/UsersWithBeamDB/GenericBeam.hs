@@ -9,7 +9,7 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ExistentialQuantification #-}
 
-module Examples.UsersWithBeamDB.GenericBeam where
+module RestEntities.Examples.UsersWithBeamDB.GenericBeam where
 
 import Data.Maybe (listToMaybe)
 import Data.Proxy
@@ -20,10 +20,10 @@ import Database.Beam.Postgres
 import Database.Beam.Postgres.Syntax
 import Database.Beam.Schema.Tables
 
-import DataProvider
-import Examples.UsersWithBeamDB.ServerConfig
+import RestEntities.DataProvider
+import RestEntities.Examples.UsersWithBeamDB.ServerConfig
 
-import qualified Examples.UsersWithBeamDB.Database as DB
+import qualified RestEntities.Examples.UsersWithBeamDB.Database as DB
 
 type TableSelector table
    = (DatabaseSettings Postgres DB.DemoBeamRestDb -> DatabaseEntity Postgres DB.DemoBeamRestDb (TableEntity table))

@@ -6,19 +6,19 @@
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
-module Examples.UsersWithBeamDB.DataSource where
+module RestEntities.Examples.UsersWithBeamDB.DataSource where
 
 import Data.Proxy
 import Database.Beam
 import Database.Beam.Postgres
 import Database.Beam.Postgres.Syntax
-import Examples.UsersWithBeamDB.GenericBeam
 
-import DataProvider
-import qualified Examples.UsersWithBeamDB.Database as DB
-import Examples.UsersWithBeamDB.Model
-import Examples.UsersWithBeamDB.ServerConfig
-import Model
+import RestEntities.DataProvider
+import qualified RestEntities.Examples.UsersWithBeamDB.Database as DB
+import RestEntities.Examples.UsersWithBeamDB.GenericBeam
+import RestEntities.Examples.UsersWithBeamDB.Model
+import RestEntities.Examples.UsersWithBeamDB.ServerConfig
+import RestEntities.Model
 
 getUserByIdWithAuth :: Int -> Pg (Maybe (DB.User, DB.Auth))
 getUserByIdWithAuth idvalue =

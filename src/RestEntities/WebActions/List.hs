@@ -1,19 +1,18 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
-module WebActions.List where
+module RestEntities.WebActions.List where
 
 import Control.Monad.Except
 import Data.Void
 import GHC.Generics
 import Servant
 
-import DataProvider
-import Permissions
-import Serializables
+import RestEntities.DataProvider
+import RestEntities.Permissions
+import RestEntities.Serializables
 
 class ( Generic e
       , Serializable e (ListActionView e)
