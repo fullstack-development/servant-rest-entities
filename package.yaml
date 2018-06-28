@@ -1,10 +1,11 @@
-name:                user-service
+name:                servant-rest-entities
 version:             0.1.0.0
-github:              "githubuser/user-service"
+github:              "fullstack-development/servant-rest-entities"
 license:             BSD3
-author:              "Author name here"
-maintainer:          "example@example.com"
-copyright:           "2018 Author name here"
+author:              "Fullstack Development"
+maintainer:          "sergey@fullstack-development.com"
+copyright:           "2018 Fullstack Development"
+stability:           experimental
 
 extra-source-files:
 - README.md
@@ -17,7 +18,7 @@ extra-source-files:
 # To avoid duplicated efforts in documentation and dealing with the
 # complications of embedding Haddock markup inside cabal files, it is
 # common to point users to the README.md file.
-description:         Please see the README on GitHub at <https://github.com/githubuser/user-service#readme>
+description:         Avoid boilerplate for CRUD in Web Apps powered by Servant. Details <https://github.com/fullstack-development/servant-rest-entities#readme>
 
 dependencies:
 - base >= 4.7 && < 5
