@@ -8,7 +8,6 @@
 
 module RestEntities.Examples.UsersWithBeamDB.DataSource where
 
-import Data.Proxy
 import Database.Beam
 import Database.Beam.Postgres
 import Database.Beam.Postgres.Syntax
@@ -41,7 +40,6 @@ saveUserFromModel :: User -> ServerConfigReader (DB.User, DB.Auth)
 saveUserFromModel userModel = do
   Just auth <-
     createEntity
-      (Proxy :: Proxy DB.Auth)
       (BeamCreateStructure
          (DB.Auth
             default_
@@ -49,7 +47,6 @@ saveUserFromModel userModel = do
             (val_ $ authCreatedAt $ userAuth userModel)))
   Just user <-
     createEntity
-      (Proxy :: Proxy DB.User)
       (BeamCreateStructure
          (DB.User
             default_

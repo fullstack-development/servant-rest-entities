@@ -183,11 +183,11 @@ instance DataProvider ServerConfigReader where
       entityId
   createEntity ::
        (BeamStorable dbmodel)
-    => Proxy dbmodel
-    -> BeamCreateStructure dbmodel
+    => BeamCreateStructure dbmodel
     -> ServerConfigReader (Maybe dbmodel)
-  createEntity proxyEntity (BeamCreateStructure dataStructure) =
-    runDS $ createFromExpr (beamTableSelector proxyEntity) dataStructure
+  createEntity (BeamCreateStructure dataStructure) =
+    runDS $
+    createFromExpr (beamTableSelector (Proxy :: Proxy dbmodel)) dataStructure
 
 innerJoin ::
      TableWithPK table

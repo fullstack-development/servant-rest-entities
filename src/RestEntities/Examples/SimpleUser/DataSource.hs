@@ -285,7 +285,7 @@ instance DataProvider Handler where
   type CreateDataStructure Handler = Identity
   getAllEntities = pure . getList
   getEntityById proxy pk = pure $ find ((== pk) . getId) (getList proxy)
-  createEntity _ (Identity model) = pure $ Just model
+  createEntity (Identity model) = pure $ Just model
 
 class MemoryStorable entity where
   getId :: entity -> Int

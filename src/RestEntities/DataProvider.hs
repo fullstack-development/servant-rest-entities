@@ -206,6 +206,5 @@ class (Monad dp) =>
     -> dp (Maybe dbmodel)
   createEntity ::
        (DataProviderTypeClass dp dbmodel)
-    => Proxy dbmodel
-    -> CreateDataStructure dp dbmodel
+    => CreateDataStructure dp dbmodel
     -> dp (Maybe dbmodel)
