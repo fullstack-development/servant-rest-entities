@@ -118,6 +118,7 @@ data Filter entity field value
               value
   | ByContainingFieldIn field
                         [value]
+  deriving (Show, Eq)
 
 class (Monad (MonadDataProvider model), DataProvider (MonadDataProvider model)) =>
       HasDataProvider model
@@ -162,7 +163,7 @@ class (Monad (MonadDataProvider model), DataProvider (MonadDataProvider model)) 
     return models
   --
   --
-  filter :: Filter model field value -> MonadDataProvider model [model]
+  filter :: [Filter model field value] -> MonadDataProvider model [model]
   --
   --
   deleteById :: Proxy model -> Int -> MonadDataProvider model (Either String ())
