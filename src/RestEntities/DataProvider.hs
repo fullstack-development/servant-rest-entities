@@ -162,10 +162,7 @@ class (Monad (MonadDataProvider model), DataProvider (MonadDataProvider model)) 
     return models
   --
   --
-  filter ::
-       Proxy model
-    -> Filter model field value
-    -> MonadDataProvider model [model]
+  filter :: Filter model field value -> MonadDataProvider model [model]
   --
   --
   deleteById :: Proxy model -> Int -> MonadDataProvider model (Either String ())
