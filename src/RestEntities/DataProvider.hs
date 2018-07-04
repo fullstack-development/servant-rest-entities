@@ -101,36 +101,23 @@ instance (HasRetrieveRelation dp a, HasRetrieveRelation dp b) =>
     relationB <- getRelationById (Proxy :: Proxy b) pk
     pure (relationA, relationB)
 
-type family ChildrenResults model where
-  ChildrenResults (ChildRelation SingularChild model) = model
-  ChildrenResults (ChildRelation MultipleChildren model) = model
-  ChildrenResults (ChildRelation VariousChildren (a, b)) = ( ChildrenResults a
-                                                           , ChildrenResults b)
-  ChildrenResults a = a
-
-class IsChildren a
-
-instance IsChildren (ChildRelation NoChild a)
-
-instance IsChildren (ChildRelation SingularChild a)
-
-instance IsChildren (ChildRelation MultipleChildren a)
-
-instance (IsChildren l, IsChildren r) =>
-         IsChildren (ChildRelation VariousChildren (l, r))
-
--- type ExampleChildren
---    = Children (Children (SingleChild Int, ManyChildren Bool), SingleChild Char)
--- exampleValue = sampleValue (Proxy :: Proxy ExampleChildren)
 type Loadable model
    = ( DataProvider (MonadDataProvider model)
      , DataProviderTypeClass (MonadDataProvider model) (DataProviderModel model))
 
 type HasRelations model
-   = ( IsChildren (ChildRelations model)
-     , DataProvider (MonadDataProvider model)
+   = ( DataProvider (MonadDataProvider model)
      , HasRetrieveRelation (MonadDataProvider model) (ChildRelations model)
      , HasRetrieveRelationConstraint (MonadDataProvider model) (ChildRelations model))
+
+-- TODO:
+-- make constraint to "'field' the field belonging 
+-- to 'entity' and 'value' is a correct type of that 'field'"
+data Filter entity field value
+  = ByEqField field
+              value
+  | ByContainingFieldIn field
+                        [value]
 
 class (Monad (MonadDataProvider model), DataProvider (MonadDataProvider model)) =>
       HasDataProvider model
@@ -149,7 +136,6 @@ class (Monad (MonadDataProvider model), DataProvider (MonadDataProvider model)) 
     -> ( DataProviderModel model
        , DenormalizedWithChildren (ChildRelations model))
   getPK :: Proxy model -> DataProviderModel model -> Int
-  getPK _ _ = 1
   save :: model -> MonadDataProvider model model
   --
   --
@@ -174,6 +160,12 @@ class (Monad (MonadDataProvider model), DataProvider (MonadDataProvider model)) 
     let denormalized = zip entities relations
     let models = map (uncurry unpack) denormalized
     return models
+  --
+  --
+  filter ::
+       Proxy model
+    -> Filter model field value
+    -> MonadDataProvider model [model]
   --
   --
   deleteById :: Proxy model -> Int -> MonadDataProvider model (Either String ())
