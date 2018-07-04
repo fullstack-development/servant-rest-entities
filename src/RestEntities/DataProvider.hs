@@ -163,7 +163,10 @@ class (Monad (MonadDataProvider model), DataProvider (MonadDataProvider model)) 
     return models
   --
   --
-  filter :: [Filter model field value] -> MonadDataProvider model [model]
+  filter ::
+       (Eq field, Eq value)
+    => [Filter model field value]
+    -> MonadDataProvider model [model]
   --
   --
   deleteById :: Proxy model -> Int -> MonadDataProvider model (Either String ())
