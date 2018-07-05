@@ -5,9 +5,11 @@
 {-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE DataKinds #-}
 
 module RestEntities.Examples.UsersWithBeamDB.DataSource where
 
+import Data.Typeable
 import Database.Beam
 import Database.Beam.Postgres
 import Database.Beam.Postgres.Syntax
@@ -99,6 +101,8 @@ instance HasDataProvider User where
       _userIsStaff
       (uncurry unpack relations)
 
+type instance FilterFieldValue Auth "id" = Int
+
 instance HasDataProvider Auth where
   type DataProviderModel Auth = DB.Auth
   type MonadDataProvider Auth = ServerConfigReader
@@ -110,3 +114,25 @@ instance HasDataProvider Auth where
   getRelated = undefined
   pack user rels = undefined
   unpack DB.Auth {..} _ = Auth (Id _authId) _authPassword _authCreatedAt
+  filter [filtering] = do
+    let q =
+          case cast filtering of
+            Just (ByEqField _ value :: Filter Auth "id") ->
+              Just $ queryById value
+            Nothing -> Nothing
+    case q of
+      Just query -> do
+        entities <-
+          runDS (runSelectReturningList $ select query :: Pg [DB.Auth])
+        relations <- mapM (getRelated (Proxy :: Proxy Auth)) entities
+        let denormalized = zip entities relations
+        let models = map (uncurry unpack) denormalized :: [Auth]
+        return models
+      Nothing -> return []
+    where
+      queryById ::
+           Int
+        -> Q PgSelectSyntax DB.DemoBeamRestDb s (DB.AuthT (QExpr PgExpressionSyntax s))
+      queryById pk =
+        filter_ (\a -> DB._authId a ==. val_ pk) $
+        all_ (DB._auth DB.demoBeamRestDb)

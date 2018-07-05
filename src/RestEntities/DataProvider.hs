@@ -10,12 +10,16 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE DeriveGeneric #-}
 
 module RestEntities.DataProvider where
 
 import Data.Kind
 import Data.Proxy
+import Data.Typeable
 import Data.Void
+import GHC.Generics
+import GHC.TypeLits
 
 data ChildRelationType
   = NoChild
@@ -110,15 +114,14 @@ type HasRelations model
      , HasRetrieveRelation (MonadDataProvider model) (ChildRelations model)
      , HasRetrieveRelationConstraint (MonadDataProvider model) (ChildRelations model))
 
--- TODO:
--- make constraint to "'field' the field belonging 
--- to 'entity' and 'value' is a correct type of that 'field'"
-data Filter entity field value
-  = ByEqField field
-              value
-  | ByContainingFieldIn field
-                        [value]
-  deriving (Show, Eq)
+data Filter entity (field :: Symbol)
+  = ByEqField (Proxy field)
+              (FilterFieldValue entity field)
+  | ByContainingFieldIn (Proxy field)
+                        [FilterFieldValue entity field]
+  deriving (Generic, Typeable)
+
+type family FilterFieldValue entity (field :: Symbol)
 
 class (Monad (MonadDataProvider model), DataProvider (MonadDataProvider model)) =>
       HasDataProvider model
@@ -164,8 +167,8 @@ class (Monad (MonadDataProvider model), DataProvider (MonadDataProvider model)) 
   --
   --
   filter ::
-       (Eq field, Eq value)
-    => [Filter model field value]
+       (KnownSymbol field)
+    => [Filter model field]
     -> MonadDataProvider model [model]
   --
   --
