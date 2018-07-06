@@ -220,7 +220,7 @@ class ( DB.IdentityToTable dbmodelA Identity ~ dbmodelA
     guard_ (joinField baseEntity `references_` enitity)
     return enitity
 
-instance BeamHasRelation DB.User DB.Auth where
-  baseEntity _ = DB._user
-  relEntity _ = DB._auth
-  joinField = DB._userAuthId
+instance BeamHasRelation DB.Auth DB.User where
+  baseEntity _ = DB._auth
+  relEntity _ = DB._user
+  joinField = DB._authUserId

@@ -5,16 +5,15 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE GADTs #-}
-{-# LANGUAGE LiberalTypeSynonyms #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE DeriveGeneric #-}
 
 module RestEntities.DataProvider where
 
 import Data.Kind
+import Data.Maybe
 import Data.Proxy
 import Data.Typeable
 import Data.Void
@@ -44,6 +43,13 @@ data ChildRelation (childType :: ChildRelationType) a where
     -> ChildRelation tb b
     -> ChildRelation VariousChildren (ChildRelation ta a, ChildRelation tb b)
 
+type family DPModel model where
+  DPModel (ChildRelation VariousChildren (a, b)) = ( DataProviderModel a
+                                                   , DataProviderModel b)
+  DPModel (ChildRelation MultipleChildren model) = DataProviderModel model
+  DPModel (ChildRelation SingularChild model) = DataProviderModel model
+  DPModel model = DataProviderModel model
+
 type family DenormalizedWithChildren model where
   DenormalizedWithChildren (ChildRelation NoChild model) = ()
   DenormalizedWithChildren (ChildRelation SingularChild model) = ( DataProviderModel model
@@ -55,6 +61,9 @@ type family DenormalizedWithChildren model where
   DenormalizedWithChildren model = ( DataProviderModel model
                                    , DenormalizedWithChildren (ChildRelations model))
 
+class HasRelation parent child where
+  getPkSelector :: Proxy parent -> Proxy child -> (child -> Int)
+
 class (DataProvider dp) =>
       HasRetrieveRelation (dp :: (* -> *)) a
   where
@@ -63,47 +72,80 @@ class (DataProvider dp) =>
        (HasRetrieveRelationConstraint dp a)
     => Proxy a
     -> Int
+    -> (DPModel a -> Int)
     -> dp (DenormalizedWithChildren a)
 
 instance (DataProvider dp) =>
          HasRetrieveRelation dp (ChildRelation NoChild a) where
   type HasRetrieveRelationConstraint dp (ChildRelation NoChild a) = Monad dp
-  getRelationById _ pk = pure ()
+  getRelationById _ pk _ = pure ()
 
 instance ( DataProvider dp
          , HasDataProvider a
          , HasRetrieveRelation dp (ChildRelations a)
+         , DPModel a ~ DataProviderModel a
+         , DPModel (ChildRelations a) ~ DataProviderModel (ChildRelations a)
          ) =>
          HasRetrieveRelation dp (ChildRelation SingularChild a) where
   type HasRetrieveRelationConstraint dp (ChildRelation SingularChild a) = ( DataProviderTypeClass dp (DataProviderModel a)
                                                                           , HasRetrieveRelationConstraint dp (ChildRelations a))
-  getRelationById _ pk = do
-    Just relation <- getEntityById (Proxy :: Proxy (DataProviderModel a)) pk
-    rels <- getRelationById (Proxy :: Proxy (ChildRelations a)) pk
+  getRelationById _ pk pkSelector = do
+    relations <- filterBySelector (Proxy :: Proxy (DPModel a)) pk pkSelector
+    let Just relation = listToMaybe relations
+    let childPkSelector =
+          getPkSelector
+            (Proxy :: Proxy (DPModel a))
+            (Proxy :: Proxy (DPModel (ChildRelations a)))
+    rels <-
+      getRelationById (Proxy :: Proxy (ChildRelations a)) pk childPkSelector
     pure (relation, rels)
 
 instance ( DataProvider dp
          , HasDataProvider a
          , HasRetrieveRelation dp (ChildRelations a)
+         , DPModel a ~ DataProviderModel a
          ) =>
          HasRetrieveRelation dp (ChildRelation MultipleChildren a) where
   type HasRetrieveRelationConstraint dp (ChildRelation MultipleChildren a) = ( DataProviderTypeClass dp (DataProviderModel a)
                                                                              , HasRetrieveRelationConstraint dp (ChildRelations a))
-  getRelationById _ pk =
-    getAllEntities (Proxy :: Proxy (DataProviderModel a)) >>= mapM loadChildren
+  getRelationById _ pk pkSelector =
+    filterBySelector (Proxy :: Proxy (DPModel a)) pk pkSelector >>=
+    mapM loadChildren
     where
       loadChildren entity = do
-        rels <- getRelationById (Proxy :: Proxy (ChildRelations a)) pk
+        let childPkSelector =
+              getPkSelector
+                (Proxy :: Proxy (DPModel a))
+                (Proxy :: Proxy (DPModel (ChildRelations a)))
+        rels <-
+          getRelationById (Proxy :: Proxy (ChildRelations a)) pk childPkSelector
         pure (entity, rels)
 
-instance (HasRetrieveRelation dp a, HasRetrieveRelation dp b) =>
+instance ( DataProvider dp
+         , HasRetrieveRelation dp (ChildRelations a)
+         , HasRetrieveRelation dp (ChildRelations b)
+         , HasRelation (DPModel b) (DPModel (ChildRelations b))
+         , HasRelation (DPModel a) (DPModel (ChildRelations a))
+         ) =>
          HasRetrieveRelation dp (ChildRelation VariousChildren (a, b)) where
   type HasRetrieveRelationConstraint dp (ChildRelation VariousChildren (a, b)) = ( HasRetrieveRelationConstraint dp a
                                                                                  , HasRetrieveRelationConstraint dp b)
-  getRelationById _ pk = do
-    relationA <- getRelationById (Proxy :: Proxy a) pk
-    relationB <- getRelationById (Proxy :: Proxy b) pk
-    pure (relationA, relationB)
+  getRelationById _ pk pkSelector = do
+    entityA <- filterBySelector (Proxy :: Proxy (DPModel a)) pk pkSelector
+    -- let childPkSelectorA =
+    --       getPkSelector
+    --         (Proxy :: Proxy (DPModel a))
+    --         (Proxy :: Proxy (DPModel (ChildRelations a)))
+    -- let childPkSelectorB =
+    --       getPkSelector
+    --         (Proxy :: Proxy (DPModel b))
+    --         (Proxy :: Proxy (DPModel (ChildRelations b)))
+    -- relationA <-
+    --   getRelationById (Proxy :: Proxy (ChildRelations a)) pk childPkSelectorA
+    -- relationB <-
+    --   getRelationById (Proxy :: Proxy (ChildRelations b)) pk childPkSelectorB
+    -- pure (relationA, relationB)
+    pure undefined
 
 type Loadable model
    = ( DataProvider (MonadDataProvider model)
@@ -123,7 +165,10 @@ data Filter entity (field :: Symbol)
 
 type family FilterFieldValue entity (field :: Symbol)
 
-class (Monad (MonadDataProvider model), DataProvider (MonadDataProvider model)) =>
+class ( Monad (MonadDataProvider model)
+      , DataProvider (MonadDataProvider model)
+      , HasRelation (DPModel model) (DPModel (ChildRelations model))
+      ) =>
       HasDataProvider model
   where
   type DataProviderModel model
@@ -180,8 +225,15 @@ class (Monad (MonadDataProvider model), DataProvider (MonadDataProvider model)) 
   default getRelated :: HasRelations model =>
     Proxy model -> DataProviderModel model -> MonadDataProvider model (DenormalizedWithChildren (ChildRelations model))
   getRelated proxyModel dpModel = do
+    let pkSelector =
+          getPkSelector
+            (Proxy :: Proxy (DPModel model))
+            (Proxy :: Proxy (DPModel (ChildRelations model)))
     let primaryKey = getPK proxyModel dpModel
-    getRelationById (Proxy :: Proxy (ChildRelations model)) primaryKey
+    getRelationById
+      (Proxy :: Proxy (ChildRelations model))
+      primaryKey
+      pkSelector
 
 class HasDataSourceRun (actionMonad :: * -> *) (dsMonad :: * -> *) where
   runDS :: dsMonad a -> actionMonad a
@@ -204,3 +256,9 @@ class (Monad dp) =>
        (DataProviderTypeClass dp dbmodel)
     => CreateDataStructure dp dbmodel
     -> dp (Maybe dbmodel)
+  filterBySelector ::
+       (DataProviderTypeClass dp dbmodel)
+    => Proxy dbmodel
+    -> value
+    -> (dbmodel -> value)
+    -> dp [dbmodel]

@@ -28,7 +28,6 @@ data UserT f = User
   , _userLastName :: Columnar f Text
   , _userCreatedAt :: Columnar f LocalTime
   , _userIsStaff :: Columnar f Bool
-  , _userAuthId :: PrimaryKey AuthT f
   } deriving (Generic, Beamable)
 
 type User = UserT Identity
@@ -58,14 +57,12 @@ users =
       "Sergeev"
       (LocalTime (ModifiedJulianDay 0) (TimeOfDay 0 0 0))
       True
-      (AuthId 1)
   , User
       2
       "Sergey"
       "Ivanov"
       (LocalTime (ModifiedJulianDay 0) (TimeOfDay 0 0 0))
       False
-      (AuthId 2)
   ]
 
 --
@@ -74,6 +71,7 @@ data AuthT f = Auth
   { _authId :: Columnar f Int
   , _authPassword :: Columnar f Text
   , _authCreatedAt :: Columnar f LocalTime
+  , _authUserId :: PrimaryKey UserT f
   } deriving (Generic, Beamable)
 
 type Auth = AuthT Identity

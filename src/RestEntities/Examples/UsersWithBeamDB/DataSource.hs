@@ -34,19 +34,12 @@ queryUserWithAuth ::
      Q PgSelectSyntax DB.DemoBeamRestDb s ( DB.UserT (QExpr PgExpressionSyntax s)
                                           , DB.AuthT (QExpr PgExpressionSyntax s))
 queryUserWithAuth = do
-  user <- all_ (DB._user DB.demoBeamRestDb)
-  auth <- innerJoinRelation user
+  auth <- all_ (DB._auth DB.demoBeamRestDb)
+  user <- innerJoinRelation auth
   pure (user, auth)
 
 saveUserFromModel :: User -> ServerConfigReader (DB.User, DB.Auth)
 saveUserFromModel userModel = do
-  Just auth <-
-    createEntity
-      (BeamCreateStructure
-         (DB.Auth
-            default_
-            (val_ $ authPassword $ userAuth userModel)
-            (val_ $ authCreatedAt $ userAuth userModel)))
   Just user <-
     createEntity
       (BeamCreateStructure
@@ -55,8 +48,15 @@ saveUserFromModel userModel = do
             (val_ $ userFirstName userModel)
             (val_ $ userLastName userModel)
             (val_ $ userCreatedAt userModel)
-            (val_ $ userIsStaff userModel)
-            (val_ $ pk auth)))
+            (val_ $ userIsStaff userModel)))
+  Just auth <-
+    createEntity
+      (BeamCreateStructure
+         (DB.Auth
+            default_
+            (val_ $ authPassword $ userAuth userModel)
+            (val_ $ authCreatedAt $ userAuth userModel)
+            (val_ $ pk user)))
   pure (user, auth)
 
 deleteUserFromDB :: Int -> Pg (Either String ())
@@ -65,11 +65,18 @@ deleteUserFromDB entityId =
     (delete (DB._user DB.demoBeamRestDb) (\u -> DB._userId u ==. val_ entityId)) >>
   pure (Right ())
 
+instance HasRelation DB.User DB.Auth where
+  getPkSelector _ _ auth =
+    let DB.UserId pk = DB._authUserId auth
+     in pk
+
 instance HasDataProvider User where
   type DataProviderModel User = DB.User
   type MonadDataProvider User = ServerConfigReader
   type ChildRelations User = SingleChild Auth
   type ParentRelations User = ()
+  getPK _ = DB._userId
+  filter _ = pure []
   loadAll _ =
     map (\(user, auth) -> unpack user (auth, ())) <$> runDS selectUsersWithAuth
   save user = do
@@ -90,7 +97,6 @@ instance HasDataProvider User where
           userLastName
           userCreatedAt
           userIsStaff
-          (DB.AuthId $ fromId $ authId userAuth)
       dpAuth = pack userAuth user
   unpack DB.User {..} relations =
     User
@@ -102,6 +108,21 @@ instance HasDataProvider User where
       (uncurry unpack relations)
 
 type instance FilterFieldValue Auth "id" = Int
+
+instance DataProvider Identity where
+  type DataProviderTypeClass Identity = Eq
+  type CreateDataStructure Identity = Identity
+
+instance HasRelation () ()
+
+instance HasDataProvider EmptyChild where
+  type DataProviderModel EmptyChild = ()
+  type MonadDataProvider EmptyChild = Identity
+  type ChildRelations EmptyChild = EmptyChild
+  type ParentRelations EmptyChild = EmptyChild
+
+instance HasRelation DB.Auth () where
+  getPkSelector _ _ _ = 0
 
 instance HasDataProvider Auth where
   type DataProviderModel Auth = DB.Auth
