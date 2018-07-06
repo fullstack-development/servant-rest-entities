@@ -204,7 +204,4 @@ class (Monad dp) =>
        (DataProviderTypeClass dp dbmodel)
     => CreateDataStructure dp dbmodel
     -> dp (Maybe dbmodel) -- TODO: add either here
-  updateEntity ::
-       (DataProviderTypeClass dp dbmodel)
-    => CreateDataStructure dp dbmodel
-    -> dp (Maybe dbmodel) -- TODO: add either here
+  updateEntity :: (DataProviderTypeClass dp dbmodel) => dbmodel -> dp ()

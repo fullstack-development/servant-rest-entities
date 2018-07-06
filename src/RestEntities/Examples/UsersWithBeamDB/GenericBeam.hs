@@ -20,7 +20,7 @@ import Database.Beam.Postgres
 import Database.Beam.Postgres.Syntax
 import Database.Beam.Schema.Tables
 
-import RestEntities.DataProvider
+import RestEntities.DataProvider hiding (save)
 import RestEntities.Examples.UsersWithBeamDB.ServerConfig
 
 import qualified RestEntities.Examples.UsersWithBeamDB.Database as DB
@@ -188,6 +188,11 @@ instance DataProvider ServerConfigReader where
   createEntity (BeamCreateStructure dataStructure) =
     runDS $
     createFromExpr (beamTableSelector (Proxy :: Proxy dbmodel)) dataStructure
+  updateEntity :: (BeamStorable dbmodel) => dbmodel -> ServerConfigReader ()
+  updateEntity ds = runDS (runUpdate query :: Pg ())
+    where
+      query =
+        save (beamTableSelector (Proxy :: Proxy dbmodel) DB.demoBeamRestDb) ds
 
 innerJoin ::
      TableWithPK table
