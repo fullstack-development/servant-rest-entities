@@ -20,6 +20,7 @@ import Data.Typeable
 import Data.Void
 import GHC.Generics
 import GHC.TypeLits
+import RestEntities.Model
 
 data ChildRelationType
   = NoChild
@@ -140,30 +141,11 @@ class (Monad (MonadDataProvider model), DataProvider (MonadDataProvider model)) 
     -> ( DataProviderModel model
        , DenormalizedWithChildren (ChildRelations model))
   getPK :: Proxy model -> DataProviderModel model -> Int
-  save :: model -> MonadDataProvider model model
-  --
-  --
-  loadById :: Proxy model -> Int -> MonadDataProvider model (Maybe model)
-  default loadById :: Loadable model =>
-    Proxy model -> Int -> MonadDataProvider model (Maybe model)
-  loadById _ pk = do
-    entity <- getEntityById (Proxy :: Proxy (DataProviderModel model)) pk
-    case entity of
-      Just e -> do
-        relations <- getRelated (Proxy :: Proxy model) e
-        return $ (`unpack` relations) <$> entity
-      _ -> return Nothing
-  --
-  --
-  loadAll :: Proxy model -> MonadDataProvider model [model]
-  default loadAll :: Loadable model =>
-    Proxy model -> MonadDataProvider model [model]
-  loadAll proxyModel = do
-    entities <- getAllEntities (Proxy :: Proxy (DataProviderModel model))
-    relations <- mapM (getRelated (Proxy :: Proxy model)) entities
-    let denormalized = zip entities relations
-    let models = map (uncurry unpack) denormalized
-    return models
+  getID :: model -> Id a
+  prepareToCreate ::
+       Proxy model
+    -> DataProviderModel model
+    -> CreateDataStructure (MonadDataProvider model) (DataProviderModel model)
   --
   --
   filter ::
@@ -173,13 +155,59 @@ class (Monad (MonadDataProvider model), DataProvider (MonadDataProvider model)) 
   --
   --
   deleteById :: Proxy model -> Int -> MonadDataProvider model (Either String ())
-  getRelated ::
+  loadParentRelations ::
+       model -> MonadDataProvider model (ParentRelations model)
+  --
+  --
+  default save :: Loadable model =>
+    model -> MonadDataProvider model model
+  save :: model -> MonadDataProvider model model
+  save entity = do
+    parents <- loadParentRelations entity
+    let (dbentity, rels) = pack entity parents
+    savedEntity <-
+      if isIdEmpty $ getID entity
+        then do
+          let err = error "Error while creating entity after"
+          let createStructure = prepareToCreate (Proxy :: Proxy model) dbentity
+          res <- createEntity createStructure
+          maybe err return res
+        else updateEntity dbentity >> return dbentity
+    let pk = getPK (Proxy :: Proxy model) savedEntity
+    freshEntity <- loadById (Proxy :: Proxy model) pk
+    case freshEntity of
+      Just c -> return c
+      _ -> error "Error while retrieving fresh entity after saving it"
+  --
+  --
+  loadById :: Proxy model -> Int -> MonadDataProvider model (Maybe model)
+  default loadById :: Loadable model =>
+    Proxy model -> Int -> MonadDataProvider model (Maybe model)
+  loadById _ pk = do
+    entity <- getEntityById (Proxy :: Proxy (DataProviderModel model)) pk
+    case entity of
+      Just e -> do
+        relations <- loadChildRelations (Proxy :: Proxy model) e
+        return $ (`unpack` relations) <$> entity
+      _ -> return Nothing
+  --
+  --
+  loadAll :: Proxy model -> MonadDataProvider model [model]
+  default loadAll :: Loadable model =>
+    Proxy model -> MonadDataProvider model [model]
+  loadAll proxyModel = do
+    entities <- getAllEntities (Proxy :: Proxy (DataProviderModel model))
+    relations <- mapM (loadChildRelations (Proxy :: Proxy model)) entities
+    let denormalized = zip entities relations
+    let models = map (uncurry unpack) denormalized
+    return models
+  loadChildRelations ::
        Proxy model
     -> DataProviderModel model
     -> MonadDataProvider model (DenormalizedWithChildren (ChildRelations model))
-  default getRelated :: HasRelations model =>
+  default loadChildRelations :: HasRelations model =>
     Proxy model -> DataProviderModel model -> MonadDataProvider model (DenormalizedWithChildren (ChildRelations model))
-  getRelated proxyModel dpModel = do
+  loadChildRelations proxyModel dpModel = do
     let primaryKey = getPK proxyModel dpModel
     getRelationById (Proxy :: Proxy (ChildRelations model)) primaryKey
 
@@ -205,3 +233,9 @@ class (Monad dp) =>
     => CreateDataStructure dp dbmodel
     -> dp (Maybe dbmodel) -- TODO: add either here
   updateEntity :: (DataProviderTypeClass dp dbmodel) => dbmodel -> dp ()
+  defaultPK :: Proxy dp -> def
+  wrapInCreateStructure ::
+       Proxy dp
+    -> dbmodel
+    -> (dbmodel -> dbmodel)
+    -> CreateDataStructure dp dbmodel

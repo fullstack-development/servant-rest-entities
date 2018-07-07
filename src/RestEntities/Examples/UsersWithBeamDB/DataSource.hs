@@ -111,7 +111,7 @@ instance HasDataProvider Auth where
   save user = pure undefined
   deleteById _ _ = pure undefined
   loadById _ _ = pure Nothing
-  getRelated = undefined
+  loadChildRelations = undefined
   pack user rels = undefined
   unpack DB.Auth {..} _ = Auth (Id _authId) _authPassword _authCreatedAt
   filter [filtering] = do
@@ -124,7 +124,7 @@ instance HasDataProvider Auth where
       Just query -> do
         entities <-
           runDS (runSelectReturningList $ select query :: Pg [DB.Auth])
-        relations <- mapM (getRelated (Proxy :: Proxy Auth)) entities
+        relations <- mapM (loadChildRelations (Proxy :: Proxy Auth)) entities
         let denormalized = zip entities relations
         let models = map (uncurry unpack) denormalized :: [Auth]
         return models
