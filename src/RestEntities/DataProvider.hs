@@ -262,9 +262,3 @@ class (Monad dp) =>
     => CreateDataStructure dp dbmodel
     -> dp (Maybe dbmodel) -- TODO: add either here
   updateEntity :: (DataProviderTypeClass dp dbmodel) => dbmodel -> dp ()
-  defaultPK :: Proxy dp -> def
-  wrapInCreateStructure ::
-       Proxy dp
-    -> dbmodel
-    -> (dbmodel -> dbmodel)
-    -> CreateDataStructure dp dbmodel
