@@ -141,7 +141,7 @@ class (Monad (MonadDataProvider model), DataProvider (MonadDataProvider model)) 
     -> ( DataProviderModel model
        , DenormalizedWithChildren (ChildRelations model))
   getPK :: Proxy model -> DataProviderModel model -> Int
-  getID :: model -> Id a
+  getID :: model -> Id Int
   prepareToCreate ::
        Proxy model
     -> DataProviderModel model
