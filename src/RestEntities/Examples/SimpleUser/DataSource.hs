@@ -154,7 +154,7 @@ instance HasDataProvider Model.User where
   type MonadDataProvider Model.User = Handler
   type ChildRelations Model.User = SingleChild Model.Auth
   type ParentRelations Model.User = ()
-  save = pure
+  save model _ = pure model
   deleteById _ _ = pure $ Right ()
   loadById _ pk =
     runMaybeT $ do

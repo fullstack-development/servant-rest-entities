@@ -110,6 +110,9 @@ type Loadable model
    = ( DataProvider (MonadDataProvider model)
      , DataProviderTypeClass (MonadDataProvider model) (DataProviderModel model))
 
+type Filterable model field
+   = (Eq (FilterFieldValue model field), KnownSymbol field, Loadable model)
+
 type HasRelations model
    = ( DataProvider (MonadDataProvider model)
      , HasRetrieveRelation (MonadDataProvider model) (ChildRelations model)
@@ -146,12 +149,31 @@ class (Monad (MonadDataProvider model), DataProvider (MonadDataProvider model)) 
        Proxy model
     -> DataProviderModel model
     -> CreateDataStructure (MonadDataProvider model) (DataProviderModel model)
+  getFilterField ::
+       (KnownSymbol field, Eq (FilterFieldValue model field))
+    => Proxy model
+    -> Proxy field
+    -> Filter model field
+    -> (DataProviderModel model -> FilterFieldValue model field)
   --
   --
   filter ::
-       (KnownSymbol field)
+       (KnownSymbol field, Eq (FilterFieldValue model field))
     => [Filter model field]
     -> MonadDataProvider model [model]
+  default filter :: (Filterable model field) =>
+    [Filter model field] -> MonadDataProvider model [model]
+  filter filters = do
+    let selectors =
+          map
+            (\f@(ByEqField field value) ->
+               (getFilterField (Proxy :: Proxy model) field f, value))
+            filters
+    entities <-
+      getFilteredEntities (Proxy :: Proxy (DataProviderModel model)) selectors
+    relations <- mapM (loadChildRelations (Proxy :: Proxy model)) entities
+    let denormalized = zip entities relations
+    return (uncurry unpack <$> denormalized)
   --
   --
   deleteById :: Proxy model -> Int -> MonadDataProvider model (Either String ())
@@ -160,10 +182,11 @@ class (Monad (MonadDataProvider model), DataProvider (MonadDataProvider model)) 
   --
   --
   default save :: Loadable model =>
-    model -> MonadDataProvider model model
-  save :: model -> MonadDataProvider model model
-  save entity = do
-    parents <- loadParentRelations entity
+    model -> Maybe (ParentRelations model) -> MonadDataProvider model model
+  save ::
+       model -> Maybe (ParentRelations model) -> MonadDataProvider model model
+  save entity mbParents = do
+    parents <- maybe (loadParentRelations entity) return mbParents
     let (dbentity, rels) = pack entity parents
     savedEntity <-
       if isIdEmpty $ getID entity
@@ -211,6 +234,7 @@ class (Monad (MonadDataProvider model), DataProvider (MonadDataProvider model)) 
     let primaryKey = getPK proxyModel dpModel
     getRelationById (Proxy :: Proxy (ChildRelations model)) primaryKey
 
+--
 class HasDataSourceRun (actionMonad :: * -> *) (dsMonad :: * -> *) where
   runDS :: dsMonad a -> actionMonad a
 
@@ -221,6 +245,11 @@ class (Monad dp) =>
   where
   type DataProviderTypeClass dp :: * -> Constraint
   type CreateDataStructure dp :: * -> *
+  getFilteredEntities ::
+       (Eq value, DataProviderTypeClass dp dbmodel)
+    => Proxy dbmodel
+    -> [(dbmodel -> value, value)]
+    -> dp [dbmodel]
   getAllEntities ::
        (DataProviderTypeClass dp dbmodel) => Proxy dbmodel -> dp [dbmodel]
   getEntityById ::

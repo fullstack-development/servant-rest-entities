@@ -35,7 +35,7 @@ class ( Generic e
     when (isNothing mbExistingModel) (throwError err404)
     let existingModel = fromJust mbExistingModel
     let updatedUnsavedModel = existingModel -- TODO: Do update here - existingModel `patchBy` modelUpdates
-    updatedModel <- save updatedUnsavedModel
+    updatedModel <- save updatedUnsavedModel Nothing
     return (serialize updatedModel :: UpdateActionView e)
   checkAccessPermission :: AccessPermissionCheck Void (MonadDataProvider e) e
   checkAccessPermission _ _ = return True

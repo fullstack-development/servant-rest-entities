@@ -28,7 +28,7 @@ class ( Generic e
   create :: CreateActionBody e -> MonadDataProvider e (CreateActionView e)
   create body = do
     model <- liftIO $ deserialize Nothing body
-    created <- save model
+    created <- save model Nothing
     pure . serialize $ created
   checkAccessPermission ::
        AccessPermissionCheck (Requester e) (MonadDataProvider e) e

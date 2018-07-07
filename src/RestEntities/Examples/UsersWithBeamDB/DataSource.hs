@@ -72,7 +72,7 @@ instance HasDataProvider User where
   type ParentRelations User = ()
   loadAll _ =
     map (\(user, auth) -> unpack user (auth, ())) <$> runDS selectUsersWithAuth
-  save user = do
+  save user _ = do
     (savedUser, savedAuth) <- saveUserFromModel user
     return $ unpack savedUser (savedAuth, ())
   deleteById _ = runDS . deleteUserFromDB
