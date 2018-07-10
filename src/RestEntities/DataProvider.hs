@@ -56,6 +56,14 @@ type family DenormalizedWithChildren model where
   DenormalizedWithChildren model = ( DataProviderModel model
                                    , DenormalizedWithChildren (ChildRelations model))
 
+type family ParentRels model where
+  ParentRels (ChildRelation NoChild model) = ()
+  ParentRels (ChildRelation SingularChild model) = ParentRelations model
+  ParentRels (ChildRelation MultipleChildren model) = [ParentRelations model]
+  ParentRels (ChildRelation VariousChildren (a, b)) = ( ParentRelations a
+                                                      , ParentRelations b)
+  ParentRels model = ParentRelations model
+
 class (DataProvider dp) =>
       HasRetrieveRelation (dp :: (* -> *)) a
   where
@@ -140,7 +148,7 @@ class (Monad (MonadDataProvider model), DataProvider (MonadDataProvider model)) 
     -> model
   pack ::
        model
-    -> ParentRelations model
+    -> (ParentRelations model, ParentRels (ChildRelations model))
     -> ( DataProviderModel model
        , DenormalizedWithChildren (ChildRelations model))
   getPK :: Proxy model -> DataProviderModel model -> Int
@@ -178,13 +186,17 @@ class (Monad (MonadDataProvider model), DataProvider (MonadDataProvider model)) 
   --
   deleteById :: Proxy model -> Int -> MonadDataProvider model (Either String ())
   loadParentRelations ::
-       model -> MonadDataProvider model (ParentRelations model)
+       model
+    -> MonadDataProvider model ( ParentRelations model
+                               , ParentRels (ChildRelations model))
   --
   --
   default save :: Loadable model =>
-    model -> Maybe (ParentRelations model) -> MonadDataProvider model model
+    model -> Maybe (ParentRelations model, ParentRels (ChildRelations model)) -> MonadDataProvider model model
   save ::
-       model -> Maybe (ParentRelations model) -> MonadDataProvider model model
+       model
+    -> Maybe (ParentRelations model, ParentRels (ChildRelations model))
+    -> MonadDataProvider model model
   save entity mbParents = do
     parents <- maybe (loadParentRelations entity) return mbParents
     let (dbentity, rels) = pack entity parents

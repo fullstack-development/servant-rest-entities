@@ -178,7 +178,7 @@ instance HasDataProvider Model.User where
       }
   pack user@Model.User {..} _ = (providedUser, auth)
     where
-      auth = pack userAuth user
+      auth = pack userAuth (user, ())
       providedUser =
         User
           { userId = PrimaryKey (Model.fromId userId)
@@ -193,7 +193,7 @@ instance HasDataProvider Model.Auth where
   type ParentRelations Model.Auth = Model.User
   type ChildRelations Model.Auth = EmptyChild
   type MonadDataProvider Model.Auth = Handler
-  pack Model.Auth {..} user = (dbAuth, ())
+  pack Model.Auth {..} (user, _) = (dbAuth, ())
     where
       dbAuth =
         Auth
@@ -227,7 +227,7 @@ instance HasDataProvider Model.RichPost where
       , Model.postTitle = fromColumn blogPostTitle
       , Model.postAuthors = map (uncurry unpack) authors
       }
-  pack Model.BlogPost {..} rels = (dpPost, dpAuthors)
+  pack Model.BlogPost {..} _ = (dpPost, dpAuthors)
     where
       dpPost =
         BlogPost
@@ -235,7 +235,7 @@ instance HasDataProvider Model.RichPost where
           , blogPostText = Column postText
           , blogPostTitle = Column postTitle
           }
-      dpAuthors = (`pack` rels) <$> postAuthors
+      dpAuthors = (`pack` ((), ())) <$> postAuthors
   save = undefined
   deleteById = undefined
 
