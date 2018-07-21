@@ -53,6 +53,9 @@ type family DenormalizedWithChildren model where
                                                                      , DenormalizedWithChildren (ChildRelations model))]
   DenormalizedWithChildren (ChildRelation VariousChildren (a, b)) = ( DenormalizedWithChildren a
                                                                     , DenormalizedWithChildren b)
+  DenormalizedWithChildren (ChildRelation VariousChildren (a, b, c)) = ( DenormalizedWithChildren a
+                                                                       , DenormalizedWithChildren b
+                                                                       , DenormalizedWithChildren c)
   DenormalizedWithChildren model = ( DataProviderModel model
                                    , DenormalizedWithChildren (ChildRelations model))
 
@@ -62,6 +65,9 @@ type family ParentRels model where
   ParentRels (ChildRelation MultipleChildren model) = [ParentRelations model]
   ParentRels (ChildRelation VariousChildren (a, b)) = ( ParentRelations a
                                                       , ParentRelations b)
+  ParentRels (ChildRelation VariousChildren (a, b, c)) = ( ParentRelations a
+                                                         , ParentRelations b
+                                                         , ParentRelations c)
   ParentRels model = ParentRelations model
 
 class (DataProvider dp) =>
