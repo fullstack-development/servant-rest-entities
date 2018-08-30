@@ -168,7 +168,7 @@ class (Monad (MonadDataProvider model), DataProvider (MonadDataProvider model)) 
     => Proxy model
     -> Proxy field
     -> Filter model field
-    -> (DataProviderModel model -> FilterFieldValue model field)
+    -> DecomposeData (MonadDataProvider model) (DataProviderModel model) (FilterFieldValue model field) --(DataProviderModel model -> FilterFieldValue model field)
   --
   --
   filter ::
@@ -263,10 +263,11 @@ class (Monad dp) =>
   where
   type DataProviderTypeClass dp :: * -> Constraint
   type CreateDataStructure dp :: * -> *
+  type DecomposeData dp :: * -> * -> *
   getFilteredEntities ::
        (Eq value, DataProviderTypeClass dp dbmodel)
     => Proxy dbmodel
-    -> [(dbmodel -> value, value)]
+    -> [(DecomposeData dp dbmodel value, value)]
     -> dp [dbmodel]
   getAllEntities ::
        (DataProviderTypeClass dp dbmodel) => Proxy dbmodel -> dp [dbmodel]
