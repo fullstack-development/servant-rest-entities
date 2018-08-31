@@ -10,7 +10,9 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE UndecidableSuperClasses #-}
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE TypeFamilyDependencies #-}
 
 module RestEntities.DataProvider where
 
@@ -164,25 +166,25 @@ class (Monad (MonadDataProvider model), DataProvider (MonadDataProvider model)) 
     -> DataProviderModel model
     -> CreateDataStructure (MonadDataProvider model) (DataProviderModel model)
   getFilterField ::
-       (KnownSymbol field, Eq (FilterFieldValue model field))
+       (KnownSymbol field, Eq (FilterFieldValue model field), Eq (FilterFieldValue (DataProviderModel model) field))
     => Proxy model
     -> Proxy field
     -> Filter model field
-    -> DecomposeData (MonadDataProvider model) (DataProviderModel model) (FilterFieldValue model field) --(DataProviderModel model -> FilterFieldValue model field)
+    -> Filter (DataProviderModel model) field
   --
   --
   filter ::
-       (KnownSymbol field, Eq (FilterFieldValue model field))
+       (KnownSymbol field, Eq (FilterFieldValue model field), Eq (FilterFieldValue (DataProviderModel model) field))
     => [Filter model field]
     -> MonadDataProvider model [model]
-  default filter :: (Filterable model field) =>
+  default filter :: (KnownSymbol field, Eq (FilterFieldValue model field), Eq (FilterFieldValue (DataProviderModel model) field), Filterable model field) =>
     [Filter model field] -> MonadDataProvider model [model]
   filter filters = do
     let selectors =
-          map
-            (\f@(ByEqField field value) ->
-               (getFilterField (Proxy :: Proxy model) field f, value))
-            filters
+          map 
+           (\f@(ByEqField field value) ->
+               getFilterField (Proxy :: Proxy model) field f)
+             filters
     entities <-
       getFilteredEntities (Proxy :: Proxy (DataProviderModel model)) selectors
     relations <- mapM (loadChildRelations (Proxy :: Proxy model)) entities
@@ -251,7 +253,6 @@ class (Monad (MonadDataProvider model), DataProvider (MonadDataProvider model)) 
   loadChildRelations proxyModel dpModel = do
     let primaryKey = getPK proxyModel dpModel
     getRelationById (Proxy :: Proxy (ChildRelations model)) primaryKey
-
 --
 class HasDataSourceRun (actionMonad :: * -> *) (dsMonad :: * -> *) where
   runDS :: dsMonad a -> actionMonad a
@@ -263,12 +264,8 @@ class (Monad dp) =>
   where
   type DataProviderTypeClass dp :: * -> Constraint
   type CreateDataStructure dp :: * -> *
-  type DecomposeData dp :: * -> * -> *
-  getFilteredEntities ::
-       (Eq value, DataProviderTypeClass dp dbmodel)
-    => Proxy dbmodel
-    -> [(DecomposeData dp dbmodel value, value)]
-    -> dp [dbmodel]
+  getFilteredEntities :: (DataProviderTypeClass dp dbmodel, Eq (FilterFieldValue dbmodel field), KnownSymbol field) =>
+    Proxy dbmodel -> [Filter dbmodel field] -> dp [dbmodel]
   getAllEntities ::
        (DataProviderTypeClass dp dbmodel) => Proxy dbmodel -> dp [dbmodel]
   getEntityById ::
