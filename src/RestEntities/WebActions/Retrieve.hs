@@ -18,7 +18,7 @@ import Servant.Auth.Server
 
 class ( Generic e
       , Serializable e (RetrieveActionView e)
-      , HasDataProvider e
+      , HasDataProviderLoadable e
       , Monad (MonadDataProvider e)
       , MonadIO (MonadDataProvider e)
       , MonadError ServantErr (MonadDataProvider e)

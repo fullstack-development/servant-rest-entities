@@ -16,7 +16,7 @@ import RestEntities.Serializables
 
 class ( Generic e
       , Serializable e (ListActionView e)
-      , HasDataProvider e
+      , HasDataProviderLoadable e
       , Monad (MonadDataProvider e)
       , MonadError ServantErr (MonadDataProvider e)
       , MonadIO (MonadDataProvider e)

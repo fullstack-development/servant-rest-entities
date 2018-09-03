@@ -130,28 +130,16 @@ type HasRelations model
      , HasRetrieveRelation (MonadDataProvider model) (ChildRelations model)
      , HasRetrieveRelationConstraint (MonadDataProvider model) (ChildRelations model))
 
-class (Monad (MonadDataProvider model), DataProvider (MonadDataProvider model)) =>
-      HasDataProvider model
+{-
+unpack
+pack
+getPK
+getID
+prepareToCreate
+-}
+class (HasDataProviderLoadable model) =>
+      HasDataProviderFilterable model
   where
-  type DataProviderModel model
-  type MonadDataProvider model :: * -> *
-  type ChildRelations model
-  type ParentRelations model
-  unpack ::
-       DataProviderModel model
-    -> DenormalizedWithChildren (ChildRelations model)
-    -> model
-  pack ::
-       model
-    -> (ParentRelations model, ParentRels (ChildRelations model))
-    -> ( DataProviderModel model
-       , DenormalizedWithChildren (ChildRelations model))
-  getPK :: Proxy model -> DataProviderModel model -> Int
-  getID :: model -> Id Int
-  prepareToCreate ::
-       Proxy model
-    -> DataProviderModel model
-    -> CreateDataStructure (MonadDataProvider model) (DataProviderModel model)
   getFilterField ::
        (KnownSymbol field, Eq (FilterFieldValue model field))
     => Proxy model
@@ -177,39 +165,14 @@ class (Monad (MonadDataProvider model), DataProvider (MonadDataProvider model)) 
     relations <- mapM (loadChildRelations (Proxy :: Proxy model)) entities
     let denormalized = zip entities relations
     return (uncurry unpack <$> denormalized)
-  --
-  --
-  deleteById :: Proxy model -> Int -> MonadDataProvider model (Either String ())
+
+class (HasDataProvider model) =>
+      HasDataProviderLoadable model
+  where
   loadParentRelations ::
        model
     -> MonadDataProvider model ( ParentRelations model
                                , ParentRels (ChildRelations model))
-  --
-  --
-  default save :: Loadable model =>
-    model -> Maybe (ParentRelations model, ParentRels (ChildRelations model)) -> MonadDataProvider model model
-  save ::
-       model
-    -> Maybe (ParentRelations model, ParentRels (ChildRelations model))
-    -> MonadDataProvider model model
-  save entity mbParents = do
-    parents <- maybe (loadParentRelations entity) return mbParents
-    let (dbentity, rels) = pack entity parents
-    savedEntity <-
-      if isIdEmpty $ getID entity
-        then do
-          let err = error "Error while creating entity after"
-          let createStructure = prepareToCreate (Proxy :: Proxy model) dbentity
-          res <- createEntity createStructure
-          maybe err return res
-        else updateEntity dbentity >> return dbentity
-    let pk = getPK (Proxy :: Proxy model) savedEntity
-    freshEntity <- loadById (Proxy :: Proxy model) pk
-    case freshEntity of
-      Just c -> return c
-      _ -> error "Error while retrieving fresh entity after saving it"
-  --
-  --
   loadById :: Proxy model -> Int -> MonadDataProvider model (Maybe model)
   default loadById :: Loadable model =>
     Proxy model -> Int -> MonadDataProvider model (Maybe model)
@@ -220,8 +183,6 @@ class (Monad (MonadDataProvider model), DataProvider (MonadDataProvider model)) 
         relations <- loadChildRelations (Proxy :: Proxy model) e
         return $ (`unpack` relations) <$> entity
       _ -> return Nothing
-  --
-  --
   loadAll :: Proxy model -> MonadDataProvider model [model]
   default loadAll :: Loadable model =>
     Proxy model -> MonadDataProvider model [model]
@@ -240,3 +201,57 @@ class (Monad (MonadDataProvider model), DataProvider (MonadDataProvider model)) 
   loadChildRelations proxyModel dpModel = do
     let primaryKey = getPK proxyModel dpModel
     getRelationById (Proxy :: Proxy (ChildRelations model)) primaryKey
+
+class (HasDataProvider model) =>
+      HasDataProviderSaveable model
+  where
+  save ::
+       model
+    -> Maybe (ParentRelations model, ParentRels (ChildRelations model))
+    -> MonadDataProvider model model
+  default save :: (Loadable model, HasDataProviderLoadable model) =>
+    model -> Maybe (ParentRelations model, ParentRels (ChildRelations model)) -> MonadDataProvider model model
+  save entity mbParents = do
+    parents <- maybe (loadParentRelations entity) return mbParents
+    let (dbentity, rels) = pack entity parents
+    savedEntity <-
+      if isIdEmpty $ getID entity
+        then do
+          let err = error "Error while creating entity after"
+          let createStructure = prepareToCreate (Proxy :: Proxy model) dbentity
+          res <- createEntity createStructure
+          maybe err return res
+        else updateEntity dbentity >> return dbentity
+    let pk = getPK (Proxy :: Proxy model) savedEntity
+    freshEntity <- loadById (Proxy :: Proxy model) pk
+    case freshEntity of
+      Just c -> return c
+      _ -> error "Error while retrieving fresh entity after saving it"
+
+class (HasDataProvider model) =>
+      HasDataProviderDeleteable model
+  where
+  deleteById :: Proxy model -> Int -> MonadDataProvider model (Either String ())
+
+class (Monad (MonadDataProvider model), DataProvider (MonadDataProvider model)) =>
+      HasDataProvider model
+  where
+  type DataProviderModel model
+  type MonadDataProvider model :: * -> *
+  type ChildRelations model
+  type ParentRelations model
+  unpack ::
+       DataProviderModel model
+    -> DenormalizedWithChildren (ChildRelations model)
+    -> model
+  pack ::
+       model
+    -> (ParentRelations model, ParentRels (ChildRelations model))
+    -> ( DataProviderModel model
+       , DenormalizedWithChildren (ChildRelations model))
+  getPK :: Proxy model -> DataProviderModel model -> Int
+  getID :: model -> Id Int
+  prepareToCreate ::
+       Proxy model
+    -> DataProviderModel model
+    -> CreateDataStructure (MonadDataProvider model) (DataProviderModel model)

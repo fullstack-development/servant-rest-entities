@@ -16,7 +16,7 @@ import RestEntities.Serializables
 class ( Generic e
       , Deserializable e (CreateActionBody e)
       , Serializable e (CreateActionView e)
-      , HasDataProvider e
+      , HasDataProviderSaveable e
       , MonadIO (MonadDataProvider e)
       , MonadError ServantErr (MonadDataProvider e)
       ) =>

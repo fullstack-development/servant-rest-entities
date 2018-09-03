@@ -15,7 +15,7 @@ import RestEntities.HasDataProvider
 import RestEntities.Permissions
 
 class ( Generic e
-      , HasDataProvider e
+      , HasDataProviderDeleteable e
       , MonadIO (MonadDataProvider e)
       , MonadError ServantErr (MonadDataProvider e)
       ) =>

@@ -155,19 +155,6 @@ instance HasDataProvider Model.User where
   type MonadDataProvider Model.User = Handler
   type ChildRelations Model.User = SingleChild Model.Auth
   type ParentRelations Model.User = ()
-  save model _ = pure model
-  deleteById _ _ = pure $ Right ()
-  loadById _ pk =
-    runMaybeT $ do
-      user <- wrap $ find (\u -> fromPK (userId u) == pk) users
-      auth <- wrap $ find (\a -> fromFK (authUserId a) == userId user) auths
-      return $ unpack user (auth, ())
-    where
-      wrap = MaybeT . return
-  loadAll _ = pure $ map (\user -> unpack user (authFor user, ())) users
-    where
-      authFor user = fromJust $ find (authByUserId $ userId user) auths
-      authByUserId id auth = fromFK (authUserId auth) == id
   unpack User {..} (auth, _) =
     Model.User
       { userId = Model.Id $ fromPK userId
@@ -188,6 +175,25 @@ instance HasDataProvider Model.User where
           , userCreatedAt = Column userCreatedAt
           , userIsStaff = Column userIsStaff
           }
+
+instance HasDataProviderSaveable Model.User where
+  save model _ = pure model
+
+instance HasDataProviderDeleteable Model.User where
+  deleteById _ _ = pure $ Right ()
+
+instance HasDataProviderLoadable Model.User where
+  loadById _ pk =
+    runMaybeT $ do
+      user <- wrap $ find (\u -> fromPK (userId u) == pk) users
+      auth <- wrap $ find (\a -> fromFK (authUserId a) == userId user) auths
+      return $ unpack user (auth, ())
+    where
+      wrap = MaybeT . return
+  loadAll _ = pure $ map (\user -> unpack user (authFor user, ())) users
+    where
+      authFor user = fromJust $ find (authByUserId $ userId user) auths
+      authByUserId id auth = fromFK (authUserId auth) == id
 
 instance HasDataProvider Model.Auth where
   type DataProviderModel Model.Auth = Auth
@@ -213,7 +219,11 @@ instance HasDataProvider Model.Auth where
       , authPassword = fromColumn authPassword
       , authCreatedAt = fromColumn authCreatedAt
       }
+
+instance HasDataProviderSaveable Model.Auth where
   save = undefined
+
+instance HasDataProviderDeleteable Model.Auth where
   deleteById = undefined
 
 instance HasDataProvider Model.RichPost where
@@ -237,8 +247,16 @@ instance HasDataProvider Model.RichPost where
           , blogPostTitle = Column postTitle
           }
       dpAuthors = (`pack` ((), ())) <$> postAuthors
+
+instance HasDataProviderSaveable Model.RichPost where
   save = undefined
+
+instance HasDataProviderDeleteable Model.RichPost where
   deleteById = undefined
+
+instance HasDataProviderLoadable Model.RichPost where
+  loadAll = undefined
+  loadById = undefined
 
 instance HasDataProvider Model.LightPost where
   type DataProviderModel Model.LightPost = BlogPost
@@ -253,7 +271,11 @@ instance HasDataProvider Model.LightPost where
       , Model.postAuthors = Model.Unfilled
       }
   pack = undefined
+
+instance HasDataProviderSaveable Model.LightPost where
   save = undefined
+
+instance HasDataProviderDeleteable Model.LightPost where
   deleteById = undefined
 
 instance HasDataProvider Model.LightAuthor where
@@ -268,7 +290,11 @@ instance HasDataProvider Model.LightAuthor where
       , authorPosts = Model.Unfilled
       }
   pack = undefined
+
+instance HasDataProviderSaveable Model.LightAuthor where
   save = undefined
+
+instance HasDataProviderDeleteable Model.LightAuthor where
   deleteById = undefined
 
 instance HasDataProvider Model.RichAuthor where
@@ -278,7 +304,11 @@ instance HasDataProvider Model.RichAuthor where
   type MonadDataProvider Model.RichAuthor = Handler
   unpack = undefined
   pack = undefined
+
+instance HasDataProviderSaveable Model.RichAuthor where
   save = undefined
+
+instance HasDataProviderDeleteable Model.RichAuthor where
   deleteById = undefined
 
 instance DataProvider Handler where
