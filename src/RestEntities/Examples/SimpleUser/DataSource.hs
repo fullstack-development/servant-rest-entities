@@ -19,6 +19,7 @@ import Servant
 
 import RestEntities.DataProvider
 import qualified RestEntities.Examples.SimpleUser.Model as Model
+import RestEntities.HasDataProvider
 import qualified RestEntities.Model as Model
 
 def = error "Default does not exist"

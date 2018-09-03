@@ -9,7 +9,7 @@ import Control.Monad.Except
 import GHC.Generics
 import Servant
 
-import RestEntities.DataProvider
+import RestEntities.HasDataProvider
 import RestEntities.Permissions
 import RestEntities.Serializables
 
