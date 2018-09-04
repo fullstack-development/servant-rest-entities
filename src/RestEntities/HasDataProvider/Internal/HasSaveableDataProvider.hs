@@ -22,6 +22,10 @@ import RestEntities.Model
 class (HasDataProvider model) =>
       HasSaveableDataProvider model
   where
+  prepareToCreate ::
+       Proxy model
+    -> DataProviderModel model
+    -> CreateDataStructure (MonadDataProvider model) (DataProviderModel model)
   save ::
        model
     -> Maybe (ParentRelations model, ParentRels (ChildRelations model))

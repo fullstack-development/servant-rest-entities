@@ -18,33 +18,11 @@ import Data.Void
 import GHC.TypeLits
 import RestEntities.DataProvider
 import RestEntities.Filter
+import RestEntities.HasDataProvider.Internal.ChildRelation
 import RestEntities.Model
 
 type Filterable model field
    = (Eq (FilterFieldValue model field), KnownSymbol field, Loadable model)
-
-data ChildRelationType
-  = NoChild
-  | SingularChild
-  | MultipleChildren
-  | VariousChildren
-
-type EmptyChild = ChildRelation NoChild Void
-
-type SingleChild a = ChildRelation SingularChild a
-
-type ManyChildren a = ChildRelation MultipleChildren a
-
-type Children a = ChildRelation VariousChildren a
-
-data ChildRelation (childType :: ChildRelationType) a where
-  ChildEmptyModel :: ChildRelation NoChild Void
-  ChildModel :: model -> ChildRelation SingularChild model
-  ChildrenModels :: [model] -> ChildRelation MultipleChildren model
-  Nested
-    :: ChildRelation ta a
-    -> ChildRelation tb b
-    -> ChildRelation VariousChildren (ChildRelation ta a, ChildRelation tb b)
 
 type family DenormalizedWithChildren model where
   DenormalizedWithChildren (ChildRelation NoChild model) = ()
@@ -148,7 +126,3 @@ class (Monad (MonadDataProvider model), DataProvider (MonadDataProvider model)) 
        , DenormalizedWithChildren (ChildRelations model))
   getPK :: Proxy model -> DataProviderModel model -> Int
   getID :: model -> Id Int
-  prepareToCreate ::
-       Proxy model
-    -> DataProviderModel model
-    -> CreateDataStructure (MonadDataProvider model) (DataProviderModel model)
