@@ -20,6 +20,7 @@ import qualified RestEntities.Examples.UsersWithBeamDB.Database as DB
 import RestEntities.Examples.UsersWithBeamDB.GenericBeam
 import RestEntities.Examples.UsersWithBeamDB.Model
 import RestEntities.Examples.UsersWithBeamDB.ServerConfig
+import RestEntities.Filter
 import RestEntities.HasDataProvider.HasDataProvider
 import RestEntities.HasDataSourceRun
 import RestEntities.Model

@@ -17,6 +17,7 @@ import Data.Proxy
 import Data.Void
 import GHC.TypeLits
 import RestEntities.DataProvider
+import RestEntities.Filter
 import RestEntities.Model
 
 type Filterable model field

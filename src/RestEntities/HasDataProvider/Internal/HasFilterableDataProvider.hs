@@ -14,9 +14,10 @@ module RestEntities.HasDataProvider.Internal.HasFilterableDataProvider where
 
 import Data.Proxy
 import GHC.TypeLits
+import RestEntities.DataProvider
+import RestEntities.Filter
 import RestEntities.HasDataProvider.Internal.HasDataProvider
 import RestEntities.HasDataProvider.Internal.HasLoadableDataProvider
-import RestEntities.DataProvider
 
 class (HasLoadableDataProvider model) =>
       HasFilterableDataProvider model

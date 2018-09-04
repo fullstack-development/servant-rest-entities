@@ -14,10 +14,10 @@
 module RestEntities.HasDataProvider.Internal.HasSaveableDataProvider where
 
 import Data.Proxy
+import RestEntities.DataProvider
 import RestEntities.HasDataProvider.Internal.HasDataProvider
 import RestEntities.HasDataProvider.Internal.HasLoadableDataProvider
 import RestEntities.Model
-import RestEntities.DataProvider
 
 class (HasDataProvider model) =>
       HasSaveableDataProvider model

@@ -14,8 +14,8 @@
 module RestEntities.HasDataProvider.Internal.HasLoadableDataProvider where
 
 import Data.Proxy
-import RestEntities.HasDataProvider.Internal.HasDataProvider
 import RestEntities.DataProvider
+import RestEntities.HasDataProvider.Internal.HasDataProvider
 
 class (HasDataProvider model) =>
       HasLoadableDataProvider model
