@@ -19,7 +19,7 @@ import Servant
 
 import RestEntities.DataProvider
 import qualified RestEntities.Examples.SimpleUser.Model as Model
-import RestEntities.HasDataProvider
+import RestEntities.HasDataProvider.HasDataProvider
 import qualified RestEntities.Model as Model
 
 def = error "Default does not exist"
@@ -176,13 +176,13 @@ instance HasDataProvider Model.User where
           , userIsStaff = Column userIsStaff
           }
 
-instance HasDataProviderSaveable Model.User where
+instance HasSaveableDataProvider Model.User where
   save model _ = pure model
 
-instance HasDataProviderDeleteable Model.User where
+instance HasDeleteableDataProvider Model.User where
   deleteById _ _ = pure $ Right ()
 
-instance HasDataProviderLoadable Model.User where
+instance HasLoadableDataProvider Model.User where
   loadById _ pk =
     runMaybeT $ do
       user <- wrap $ find (\u -> fromPK (userId u) == pk) users
@@ -220,10 +220,10 @@ instance HasDataProvider Model.Auth where
       , authCreatedAt = fromColumn authCreatedAt
       }
 
-instance HasDataProviderSaveable Model.Auth where
+instance HasSaveableDataProvider Model.Auth where
   save = undefined
 
-instance HasDataProviderDeleteable Model.Auth where
+instance HasDeleteableDataProvider Model.Auth where
   deleteById = undefined
 
 instance HasDataProvider Model.RichPost where
@@ -248,13 +248,13 @@ instance HasDataProvider Model.RichPost where
           }
       dpAuthors = (`pack` ((), ())) <$> postAuthors
 
-instance HasDataProviderSaveable Model.RichPost where
+instance HasSaveableDataProvider Model.RichPost where
   save = undefined
 
-instance HasDataProviderDeleteable Model.RichPost where
+instance HasDeleteableDataProvider Model.RichPost where
   deleteById = undefined
 
-instance HasDataProviderLoadable Model.RichPost where
+instance HasLoadableDataProvider Model.RichPost where
   loadAll = undefined
   loadById = undefined
 
@@ -272,10 +272,10 @@ instance HasDataProvider Model.LightPost where
       }
   pack = undefined
 
-instance HasDataProviderSaveable Model.LightPost where
+instance HasSaveableDataProvider Model.LightPost where
   save = undefined
 
-instance HasDataProviderDeleteable Model.LightPost where
+instance HasDeleteableDataProvider Model.LightPost where
   deleteById = undefined
 
 instance HasDataProvider Model.LightAuthor where
@@ -291,10 +291,10 @@ instance HasDataProvider Model.LightAuthor where
       }
   pack = undefined
 
-instance HasDataProviderSaveable Model.LightAuthor where
+instance HasSaveableDataProvider Model.LightAuthor where
   save = undefined
 
-instance HasDataProviderDeleteable Model.LightAuthor where
+instance HasDeleteableDataProvider Model.LightAuthor where
   deleteById = undefined
 
 instance HasDataProvider Model.RichAuthor where
@@ -305,10 +305,10 @@ instance HasDataProvider Model.RichAuthor where
   unpack = undefined
   pack = undefined
 
-instance HasDataProviderSaveable Model.RichAuthor where
+instance HasSaveableDataProvider Model.RichAuthor where
   save = undefined
 
-instance HasDataProviderDeleteable Model.RichAuthor where
+instance HasDeleteableDataProvider Model.RichAuthor where
   deleteById = undefined
 
 instance DataProvider Handler where

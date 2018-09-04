@@ -10,13 +10,13 @@ import Data.Void
 import GHC.Generics
 import Servant
 
-import RestEntities.HasDataProvider
+import RestEntities.HasDataProvider.HasDataProvider
 import RestEntities.Permissions
 import RestEntities.Serializables
 
 class ( Generic e
       , Serializable e (ListActionView e)
-      , HasDataProviderLoadable e
+      , HasLoadableDataProvider e
       , Monad (MonadDataProvider e)
       , MonadError ServantErr (MonadDataProvider e)
       , MonadIO (MonadDataProvider e)

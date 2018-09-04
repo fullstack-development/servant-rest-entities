@@ -20,7 +20,7 @@ import qualified RestEntities.Examples.UsersWithBeamDB.Database as DB
 import RestEntities.Examples.UsersWithBeamDB.GenericBeam
 import RestEntities.Examples.UsersWithBeamDB.Model
 import RestEntities.Examples.UsersWithBeamDB.ServerConfig
-import RestEntities.HasDataProvider
+import RestEntities.HasDataProvider.HasDataProvider
 import RestEntities.HasDataSourceRun
 import RestEntities.Model
 
@@ -93,12 +93,12 @@ instance HasDataProvider User where
       _userIsStaff
       (uncurry unpack relations)
 
-instance HasDataProviderSaveable User where
+instance HasSaveableDataProvider User where
   save user _ = do
     (savedUser, savedAuth) <- saveUserFromModel user
     return $ unpack savedUser (savedAuth, ())
 
-instance HasDataProviderLoadable User where
+instance HasLoadableDataProvider User where
   loadAll _ =
     map (\(user, auth) -> unpack user (auth, ())) <$> runDS selectUsersWithAuth
   loadById _ pk = do
@@ -107,7 +107,7 @@ instance HasDataProviderLoadable User where
           maybe Nothing (\(user, auth) -> Just $ unpack user (auth, ())) result
     return entity
 
-instance HasDataProviderDeleteable User where
+instance HasDeleteableDataProvider User where
   deleteById _ = runDS . deleteUserFromDB
 
 type instance FilterFieldValue Auth "id" = Int
@@ -120,10 +120,10 @@ instance HasDataProvider Auth where
   pack user rels = undefined
   unpack DB.Auth {..} _ = Auth (Id _authId) _authPassword _authCreatedAt
 
-instance HasDataProviderSaveable Auth where
+instance HasSaveableDataProvider Auth where
   save user = pure undefined
 
-instance HasDataProviderFilterable Auth where
+instance HasFilterableDataProvider Auth where
   filter [filtering] = do
     let q =
           case cast filtering of
@@ -147,9 +147,9 @@ instance HasDataProviderFilterable Auth where
         filter_ (\a -> DB._authId a ==. val_ pk) $
         all_ (DB._auth DB.demoBeamRestDb)
 
-instance HasDataProviderLoadable Auth where
+instance HasLoadableDataProvider Auth where
   loadById _ _ = pure Nothing
   loadChildRelations = undefined
 
-instance HasDataProviderDeleteable Auth where
+instance HasDeleteableDataProvider Auth where
   deleteById _ _ = pure undefined

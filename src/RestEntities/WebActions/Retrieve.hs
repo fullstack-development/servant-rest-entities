@@ -10,7 +10,7 @@ import Control.Monad.Except
 import Data.Maybe
 import GHC.Generics
 
-import RestEntities.HasDataProvider
+import RestEntities.HasDataProvider.HasDataProvider
 import RestEntities.Permissions
 import RestEntities.Serializables
 import Servant
@@ -18,7 +18,7 @@ import Servant.Auth.Server
 
 class ( Generic e
       , Serializable e (RetrieveActionView e)
-      , HasDataProviderLoadable e
+      , HasLoadableDataProvider e
       , Monad (MonadDataProvider e)
       , MonadIO (MonadDataProvider e)
       , MonadError ServantErr (MonadDataProvider e)

@@ -11,7 +11,7 @@
 module RestEntities.Resource where
 
 import GHC.Generics
-import RestEntities.HasDataProvider
+import RestEntities.HasDataProvider.HasDataProvider
 import Servant
 
 class (Generic e, HasDataProvider e) =>

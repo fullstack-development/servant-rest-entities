@@ -9,14 +9,14 @@ import Control.Monad.Except
 import GHC.Generics
 import Servant
 
-import RestEntities.HasDataProvider
+import RestEntities.HasDataProvider.HasDataProvider
 import RestEntities.Permissions
 import RestEntities.Serializables
 
 class ( Generic e
       , Deserializable e (CreateActionBody e)
       , Serializable e (CreateActionView e)
-      , HasDataProviderSaveable e
+      , HasSaveableDataProvider e
       , MonadIO (MonadDataProvider e)
       , MonadError ServantErr (MonadDataProvider e)
       ) =>

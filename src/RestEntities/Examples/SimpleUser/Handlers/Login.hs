@@ -24,7 +24,7 @@ import qualified Data.Text as T
 import GHC.Generics
 import RestEntities.Examples.SimpleUser.DataSource ()
 import RestEntities.Examples.SimpleUser.Model
-import RestEntities.HasDataProvider
+import RestEntities.HasDataProvider.HasDataProvider
 import Servant
 import Servant.Auth.Server
 import qualified Web.Cookie as Cookie
