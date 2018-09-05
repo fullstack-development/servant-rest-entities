@@ -118,39 +118,4 @@ instance HasDataProvider Auth where
   type MonadDataProvider Auth = ServerConfigReader
   type ChildRelations Auth = EmptyChild
   type ParentRelations Auth = User
-  pack user rels = undefined
   unpack DB.Auth {..} _ = Auth (Id _authId) _authPassword _authCreatedAt
-
-instance HasSaveableDataProvider Auth where
-  save user = pure undefined
-
-instance HasFilterableDataProvider Auth where
-  filter [filtering] = do
-    let q =
-          case cast filtering of
-            Just (ByEqField _ value :: Filter Auth "id") ->
-              Just $ queryById value
-            Nothing -> Nothing
-    case q of
-      Just query -> do
-        entities <-
-          runDS (runSelectReturningList $ select query :: Pg [DB.Auth])
-        relations <- mapM (loadChildRelations (Proxy :: Proxy Auth)) entities
-        let denormalized = zip entities relations
-        let models = map (uncurry unpack) denormalized :: [Auth]
-        return models
-      Nothing -> return []
-    where
-      queryById ::
-           Int
-        -> Q PgSelectSyntax DB.DemoBeamRestDb s (DB.AuthT (QExpr PgExpressionSyntax s))
-      queryById pk =
-        filter_ (\a -> DB._authId a ==. val_ pk) $
-        all_ (DB._auth DB.demoBeamRestDb)
-
-instance HasLoadableDataProvider Auth where
-  loadById _ _ = pure Nothing
-  loadChildRelations = undefined
-
-instance HasDeleteableDataProvider Auth where
-  deleteById _ _ = pure undefined
