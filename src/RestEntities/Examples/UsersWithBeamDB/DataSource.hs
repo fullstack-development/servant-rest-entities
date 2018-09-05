@@ -9,7 +9,6 @@
 
 module RestEntities.Examples.UsersWithBeamDB.DataSource where
 
-import Data.Typeable
 import Database.Beam
 import Database.Beam.Postgres
 import Database.Beam.Postgres.Syntax
@@ -74,6 +73,8 @@ instance HasDataProvider User where
   type MonadDataProvider User = ServerConfigReader
   type ChildRelations User = SingleChild Auth
   type ParentRelations User = ()
+  getPK _ = DB._userId
+  getID = userId
   pack user@User {..} _ = (dpUser, dpAuth)
     where
       dpUser =
@@ -118,4 +119,7 @@ instance HasDataProvider Auth where
   type MonadDataProvider Auth = ServerConfigReader
   type ChildRelations Auth = EmptyChild
   type ParentRelations Auth = User
+  getPK _ = DB._authId
+  getID = authId
+  pack Auth {..} _ = (DB.Auth (fromId authId) authPassword authCreatedAt, ())
   unpack DB.Auth {..} _ = Auth (Id _authId) _authPassword _authCreatedAt

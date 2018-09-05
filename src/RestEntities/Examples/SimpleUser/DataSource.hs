@@ -34,6 +34,9 @@ newtype PrimaryKey a =
   PrimaryKey a
   deriving (Show, Eq)
 
+fromPrimary :: PrimaryKey a -> a
+fromPrimary (PrimaryKey a) = a
+
 newtype ForeignKey a =
   ForeignKey a
   deriving (Show, Eq)
@@ -155,6 +158,8 @@ instance HasDataProvider Model.User where
   type MonadDataProvider Model.User = Handler
   type ChildRelations Model.User = SingleChild Model.Auth
   type ParentRelations Model.User = ()
+  getPK _ = fromPK . userId
+  getID = Model.userId
   unpack User {..} (auth, _) =
     Model.User
       { userId = Model.Id $ fromPK userId
@@ -200,6 +205,8 @@ instance HasDataProvider Model.Auth where
   type ParentRelations Model.Auth = Model.User
   type ChildRelations Model.Auth = EmptyChild
   type MonadDataProvider Model.Auth = Handler
+  getPK _ = fromPK . authId
+  getID = Model.authId
   pack Model.Auth {..} (user, _) = (dbAuth, ())
     where
       dbAuth =
@@ -225,6 +232,8 @@ instance HasDataProvider Model.RichPost where
   type ParentRelations Model.RichPost = ()
   type ChildRelations Model.RichPost = ManyChildren Model.LightAuthor
   type MonadDataProvider Model.RichPost = Handler
+  getPK _ = fromPK . blogPostId
+  getID = Model.postId
   unpack BlogPost {..} authors =
     Model.BlogPost
       { Model.postId = Model.Id $ fromPK blogPostId
@@ -247,6 +256,9 @@ instance HasDataProvider Model.LightPost where
   type ParentRelations Model.LightPost = ()
   type ChildRelations Model.LightPost = ManyChildren Model.LightAuthor
   type MonadDataProvider Model.LightPost = Handler
+  getPK _ = fromPK . blogPostId
+  getID = Model.postId
+  pack Model.BlogPost {} = undefined
   unpack BlogPost {..} authors =
     Model.BlogPost
       { Model.postId = Model.Id $ fromPK blogPostId
@@ -260,6 +272,16 @@ instance HasDataProvider Model.LightAuthor where
   type ChildRelations Model.LightAuthor = EmptyChild
   type ParentRelations Model.LightAuthor = ()
   type MonadDataProvider Model.LightAuthor = Handler
+  getPK _ = fromPK . authorId
+  getID = Model.authorId
+  pack Model.Author {Model.authorId = aId, Model.authorPseudonim = aP} _ =
+    (dpAuthor, ())
+    where
+      dpAuthor =
+        Author
+          { authorId = PrimaryKey $ Model.fromId aId
+          , authorPseudonim = Column aP
+          }
   unpack Author {..} _ =
     Model.Author
       { Model.authorId = Model.Id $ fromPK authorId

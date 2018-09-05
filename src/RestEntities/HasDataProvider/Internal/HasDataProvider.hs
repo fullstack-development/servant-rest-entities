@@ -14,7 +14,6 @@ module RestEntities.HasDataProvider.Internal.HasDataProvider where
 
 import Data.Kind
 import Data.Proxy
-import Data.Void
 import GHC.TypeLits
 import RestEntities.DataProvider
 import RestEntities.Filter

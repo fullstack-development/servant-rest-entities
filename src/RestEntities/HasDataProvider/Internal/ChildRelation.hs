@@ -12,13 +12,7 @@
 
 module RestEntities.HasDataProvider.Internal.ChildRelation where
 
-import Data.Kind
-import Data.Proxy
 import Data.Void
-import GHC.TypeLits
-import RestEntities.DataProvider
-import RestEntities.Filter
-import RestEntities.Model
 
 data ChildRelationType
   = NoChild
