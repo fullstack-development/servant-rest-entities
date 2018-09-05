@@ -40,22 +40,3 @@ data AuthorView = AuthorView
 instance Serializable LightAuthor AuthorView where
   serialize Author {..} =
     AuthorView {authorId = fromId authorId, authorName = authorPseudonim}
-
-instance Serializable RichPost (RetrieveActionView RichPost) where
-  serialize BlogPost {..} =
-    RetrievePostView
-      PostView
-        { postId = fromId postId
-        , postText = postText
-        , postTitle = postTitle
-        , authors = map serialize postAuthors
-        }
-
-instance HasRetrieveMethod RichPost where
-  type Requester RichPost = Void
-  data RetrieveActionView RichPost = RetrievePostView PostView
-                                     deriving (Generic, Aeson.ToJSON)
-
-instance Resource RichPost where
-  type Api RichPost = RetrieveApi "posts" (RetrieveActionView RichPost)
-  server p = retrieve

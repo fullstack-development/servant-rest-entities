@@ -220,12 +220,6 @@ instance HasDataProvider Model.Auth where
       , authCreatedAt = fromColumn authCreatedAt
       }
 
-instance HasSaveableDataProvider Model.Auth where
-  save = undefined
-
-instance HasDeleteableDataProvider Model.Auth where
-  deleteById = undefined
-
 instance HasDataProvider Model.RichPost where
   type DataProviderModel Model.RichPost = BlogPost
   type ParentRelations Model.RichPost = ()
@@ -248,16 +242,6 @@ instance HasDataProvider Model.RichPost where
           }
       dpAuthors = (`pack` ((), ())) <$> postAuthors
 
-instance HasSaveableDataProvider Model.RichPost where
-  save = undefined
-
-instance HasDeleteableDataProvider Model.RichPost where
-  deleteById = undefined
-
-instance HasLoadableDataProvider Model.RichPost where
-  loadAll = undefined
-  loadById = undefined
-
 instance HasDataProvider Model.LightPost where
   type DataProviderModel Model.LightPost = BlogPost
   type ParentRelations Model.LightPost = ()
@@ -270,13 +254,6 @@ instance HasDataProvider Model.LightPost where
       , Model.postTitle = fromColumn blogPostTitle
       , Model.postAuthors = Model.Unfilled
       }
-  pack = undefined
-
-instance HasSaveableDataProvider Model.LightPost where
-  save = undefined
-
-instance HasDeleteableDataProvider Model.LightPost where
-  deleteById = undefined
 
 instance HasDataProvider Model.LightAuthor where
   type DataProviderModel Model.LightAuthor = Author
@@ -289,27 +266,6 @@ instance HasDataProvider Model.LightAuthor where
       , Model.authorPseudonim = fromColumn authorPseudonim
       , authorPosts = Model.Unfilled
       }
-  pack = undefined
-
-instance HasSaveableDataProvider Model.LightAuthor where
-  save = undefined
-
-instance HasDeleteableDataProvider Model.LightAuthor where
-  deleteById = undefined
-
-instance HasDataProvider Model.RichAuthor where
-  type DataProviderModel Model.RichAuthor = Author
-  type ParentRelations Model.RichAuthor = ()
-  type ChildRelations Model.RichAuthor = ManyChildren Model.LightPost
-  type MonadDataProvider Model.RichAuthor = Handler
-  unpack = undefined
-  pack = undefined
-
-instance HasSaveableDataProvider Model.RichAuthor where
-  save = undefined
-
-instance HasDeleteableDataProvider Model.RichAuthor where
-  deleteById = undefined
 
 instance DataProvider Handler where
   type DataProviderTypeClass Handler = MemoryStorable

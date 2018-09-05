@@ -21,11 +21,9 @@ import RestEntities.Examples.SimpleUser.Resources.PostResource ()
 import RestEntities.Examples.SimpleUser.Resources.UserResource ()
 import RestEntities.Resource
 
-fullApi cs jwts =
-  server (Proxy :: Proxy User) :<|> login cs jwts :<|>
-  server (Proxy :: Proxy RichPost)
+fullApi cs jwts = server (Proxy :: Proxy User) :<|> login cs jwts
 
-type FullApi = Api User :<|> LoginAPI :<|> Api RichPost
+type FullApi = Api User :<|> LoginAPI
 
 routes :: Proxy FullApi
 routes = Proxy
