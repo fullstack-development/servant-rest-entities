@@ -26,20 +26,13 @@ def = error "Default does not exist"
 
 fromColumn (Column v) = v
 
-fromPK (PrimaryKey pk) = pk
+newtype PrimaryKey a = PrimaryKey
+  { fromPK :: a
+  } deriving (Show, Eq)
 
-fromFK (ForeignKey k) = k
-
-newtype PrimaryKey a =
-  PrimaryKey a
-  deriving (Show, Eq)
-
-fromPrimary :: PrimaryKey a -> a
-fromPrimary (PrimaryKey a) = a
-
-newtype ForeignKey a =
-  ForeignKey a
-  deriving (Show, Eq)
+newtype ForeignKey a = ForeignKey
+  { fromFK :: a
+  } deriving (Show, Eq)
 
 newtype Column a =
   Column a
@@ -258,7 +251,6 @@ instance HasDataProvider Model.LightPost where
   type MonadDataProvider Model.LightPost = Handler
   getPK _ = fromPK . blogPostId
   getID = Model.postId
-  pack Model.BlogPost {} = undefined
   unpack BlogPost {..} authors =
     Model.BlogPost
       { Model.postId = Model.Id $ fromPK blogPostId
