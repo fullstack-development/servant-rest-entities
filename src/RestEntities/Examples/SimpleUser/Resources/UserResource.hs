@@ -7,6 +7,7 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 module RestEntities.Examples.SimpleUser.Resources.UserResource
   (
@@ -71,47 +72,29 @@ serializeUserView User {..} =
     , userViewIsStaff = userIsStaff
     }
 
-instance Serializable User (CreateActionView User) where
-  serialize user = CreateUserView $ serializeUserView user
+instance Serializable User UserView where
+  serialize = serializeUserView
 
-instance Deserializable User (CreateActionBody User) where
-  deserialize pk (CreateUserBody userBody) = deserializeUserView pk userBody
-
-instance Serializable User (UpdateActionView User) where
-  serialize user = UpdateUserView $ serializeUserView user
-
-instance Deserializable User (UpdateActionBody User) where
-  deserialize pk (UpdateUserBody userBody) = deserializeUserView pk userBody
-
-instance Serializable User (ListActionView User) where
-  serialize user = ListUserView $ serializeUserView user
-
-instance Serializable User (RetrieveActionView User) where
-  serialize user = RetrieveUserView $ serializeUserView user
+instance Deserializable User UserBody where
+  deserialize = deserializeUserView
 
 instance HasCreateMethod User where
   type Requester User = User
-  data CreateActionBody User = CreateUserBody UserBody
-                               deriving (Generic, Aeson.FromJSON)
-  data CreateActionView User = CreateUserView UserView
-                               deriving (Generic, Aeson.ToJSON)
+  type CreateActionBody User = UserBody
+  type CreateActionView User = UserView
 
 instance HasUpdateMethod User where
-  data UpdateActionBody User = UpdateUserBody UserBody
-                               deriving (Generic, Aeson.FromJSON)
-  data UpdateActionView User = UpdateUserView UserView
-                               deriving (Generic, Aeson.ToJSON)
+  type UpdateActionBody User = UserBody
+  type UpdateActionView User = UserView
 
 instance HasDeleteMethod User
 
 instance HasListMethod User where
-  data ListActionView User = ListUserView UserView
-                             deriving (Generic, Aeson.ToJSON)
+  type ListActionView User = UserView
 
 instance HasRetrieveMethod User where
   type Requester User = User
-  data RetrieveActionView User = RetrieveUserView UserView
-                                 deriving (Generic, Aeson.ToJSON)
+  type RetrieveActionView User = UserView
   checkEntityPermission (Just user) entity =
     return (userId user == userId entity)
   checkEntityPermission _ _ = return False

@@ -1,5 +1,6 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TypeFamilyDependencies #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
@@ -11,22 +12,23 @@ import Data.Void
 import GHC.Generics
 import Servant
 
-import RestEntities.DataProvider
+import RestEntities.HasDataProvider.HasDataProvider
 import RestEntities.Permissions
 import RestEntities.Serializables
 
 class ( Generic e
       , Deserializable e (UpdateActionBody e)
       , Serializable e (UpdateActionView e)
-      , HasDataProvider e
+      , HasLoadableDataProvider e
+      , HasSaveableDataProvider e
       , Monad (MonadDataProvider e)
       , MonadIO (MonadDataProvider e)
       , MonadError ServantErr (MonadDataProvider e)
       ) =>
       HasUpdateMethod e
   where
-  data UpdateActionBody e
-  data UpdateActionView e
+  type UpdateActionBody e = uAb | uAb -> e
+  type UpdateActionView e = uAv | uAv -> e
   update ::
        Int -> UpdateActionBody e -> (MonadDataProvider e) (UpdateActionView e)
   update entityId body = do

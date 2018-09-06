@@ -1,5 +1,6 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TypeFamilyDependencies #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
@@ -10,20 +11,20 @@ import Data.Void
 import GHC.Generics
 import Servant
 
-import RestEntities.DataProvider
+import RestEntities.HasDataProvider.HasDataProvider
 import RestEntities.Permissions
 import RestEntities.Serializables
 
 class ( Generic e
       , Serializable e (ListActionView e)
-      , HasDataProvider e
+      , HasLoadableDataProvider e
       , Monad (MonadDataProvider e)
       , MonadError ServantErr (MonadDataProvider e)
       , MonadIO (MonadDataProvider e)
       ) =>
       HasListMethod e
   where
-  data ListActionView e
+  type ListActionView e = l | l -> e
   list :: MonadDataProvider e [ListActionView e]
   list = fmap serialize <$> loadAll (Proxy :: Proxy e)
   checkAccessPermission :: AccessPermissionCheck Void (MonadDataProvider e) e

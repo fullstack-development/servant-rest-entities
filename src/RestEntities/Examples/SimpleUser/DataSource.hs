@@ -19,23 +19,20 @@ import Servant
 
 import RestEntities.DataProvider
 import qualified RestEntities.Examples.SimpleUser.Model as Model
+import RestEntities.HasDataProvider.HasDataProvider
 import qualified RestEntities.Model as Model
 
 def = error "Default does not exist"
 
 fromColumn (Column v) = v
 
-fromPK (PrimaryKey pk) = pk
+newtype PrimaryKey a = PrimaryKey
+  { fromPK :: a
+  } deriving (Show, Eq)
 
-fromFK (ForeignKey k) = k
-
-newtype PrimaryKey a =
-  PrimaryKey a
-  deriving (Show, Eq)
-
-newtype ForeignKey a =
-  ForeignKey a
-  deriving (Show, Eq)
+newtype ForeignKey a = ForeignKey
+  { fromFK :: a
+  } deriving (Show, Eq)
 
 newtype Column a =
   Column a
@@ -154,19 +151,8 @@ instance HasDataProvider Model.User where
   type MonadDataProvider Model.User = Handler
   type ChildRelations Model.User = SingleChild Model.Auth
   type ParentRelations Model.User = ()
-  save model _ = pure model
-  deleteById _ _ = pure $ Right ()
-  loadById _ pk =
-    runMaybeT $ do
-      user <- wrap $ find (\u -> fromPK (userId u) == pk) users
-      auth <- wrap $ find (\a -> fromFK (authUserId a) == userId user) auths
-      return $ unpack user (auth, ())
-    where
-      wrap = MaybeT . return
-  loadAll _ = pure $ map (\user -> unpack user (authFor user, ())) users
-    where
-      authFor user = fromJust $ find (authByUserId $ userId user) auths
-      authByUserId id auth = fromFK (authUserId auth) == id
+  getPK _ = fromPK . userId
+  getID = Model.userId
   unpack User {..} (auth, _) =
     Model.User
       { userId = Model.Id $ fromPK userId
@@ -188,11 +174,32 @@ instance HasDataProvider Model.User where
           , userIsStaff = Column userIsStaff
           }
 
+instance HasSaveableDataProvider Model.User where
+  save model _ = pure model
+
+instance HasDeleteableDataProvider Model.User where
+  deleteById _ _ = pure $ Right ()
+
+instance HasLoadableDataProvider Model.User where
+  loadById _ pk =
+    runMaybeT $ do
+      user <- wrap $ find (\u -> fromPK (userId u) == pk) users
+      auth <- wrap $ find (\a -> fromFK (authUserId a) == userId user) auths
+      return $ unpack user (auth, ())
+    where
+      wrap = MaybeT . return
+  loadAll _ = pure $ map (\user -> unpack user (authFor user, ())) users
+    where
+      authFor user = fromJust $ find (authByUserId $ userId user) auths
+      authByUserId id auth = fromFK (authUserId auth) == id
+
 instance HasDataProvider Model.Auth where
   type DataProviderModel Model.Auth = Auth
   type ParentRelations Model.Auth = Model.User
   type ChildRelations Model.Auth = EmptyChild
   type MonadDataProvider Model.Auth = Handler
+  getPK _ = fromPK . authId
+  getID = Model.authId
   pack Model.Auth {..} (user, _) = (dbAuth, ())
     where
       dbAuth =
@@ -212,14 +219,14 @@ instance HasDataProvider Model.Auth where
       , authPassword = fromColumn authPassword
       , authCreatedAt = fromColumn authCreatedAt
       }
-  save = undefined
-  deleteById = undefined
 
 instance HasDataProvider Model.RichPost where
   type DataProviderModel Model.RichPost = BlogPost
   type ParentRelations Model.RichPost = ()
   type ChildRelations Model.RichPost = ManyChildren Model.LightAuthor
   type MonadDataProvider Model.RichPost = Handler
+  getPK _ = fromPK . blogPostId
+  getID = Model.postId
   unpack BlogPost {..} authors =
     Model.BlogPost
       { Model.postId = Model.Id $ fromPK blogPostId
@@ -236,14 +243,14 @@ instance HasDataProvider Model.RichPost where
           , blogPostTitle = Column postTitle
           }
       dpAuthors = (`pack` ((), ())) <$> postAuthors
-  save = undefined
-  deleteById = undefined
 
 instance HasDataProvider Model.LightPost where
   type DataProviderModel Model.LightPost = BlogPost
   type ParentRelations Model.LightPost = ()
   type ChildRelations Model.LightPost = ManyChildren Model.LightAuthor
   type MonadDataProvider Model.LightPost = Handler
+  getPK _ = fromPK . blogPostId
+  getID = Model.postId
   unpack BlogPost {..} authors =
     Model.BlogPost
       { Model.postId = Model.Id $ fromPK blogPostId
@@ -251,34 +258,28 @@ instance HasDataProvider Model.LightPost where
       , Model.postTitle = fromColumn blogPostTitle
       , Model.postAuthors = Model.Unfilled
       }
-  pack = undefined
-  save = undefined
-  deleteById = undefined
 
 instance HasDataProvider Model.LightAuthor where
   type DataProviderModel Model.LightAuthor = Author
   type ChildRelations Model.LightAuthor = EmptyChild
   type ParentRelations Model.LightAuthor = ()
   type MonadDataProvider Model.LightAuthor = Handler
+  getPK _ = fromPK . authorId
+  getID = Model.authorId
+  pack Model.Author {Model.authorId = aId, Model.authorPseudonim = aP} _ =
+    (dpAuthor, ())
+    where
+      dpAuthor =
+        Author
+          { authorId = PrimaryKey $ Model.fromId aId
+          , authorPseudonim = Column aP
+          }
   unpack Author {..} _ =
     Model.Author
       { Model.authorId = Model.Id $ fromPK authorId
       , Model.authorPseudonim = fromColumn authorPseudonim
       , authorPosts = Model.Unfilled
       }
-  pack = undefined
-  save = undefined
-  deleteById = undefined
-
-instance HasDataProvider Model.RichAuthor where
-  type DataProviderModel Model.RichAuthor = Author
-  type ParentRelations Model.RichAuthor = ()
-  type ChildRelations Model.RichAuthor = ManyChildren Model.LightPost
-  type MonadDataProvider Model.RichAuthor = Handler
-  unpack = undefined
-  pack = undefined
-  save = undefined
-  deleteById = undefined
 
 instance DataProvider Handler where
   type DataProviderTypeClass Handler = MemoryStorable

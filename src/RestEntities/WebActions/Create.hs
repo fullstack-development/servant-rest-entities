@@ -1,5 +1,6 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TypeFamilyDependencies #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
@@ -9,22 +10,22 @@ import Control.Monad.Except
 import GHC.Generics
 import Servant
 
-import RestEntities.DataProvider
+import RestEntities.HasDataProvider.HasDataProvider
 import RestEntities.Permissions
 import RestEntities.Serializables
 
 class ( Generic e
       , Deserializable e (CreateActionBody e)
       , Serializable e (CreateActionView e)
-      , HasDataProvider e
+      , HasSaveableDataProvider e
       , MonadIO (MonadDataProvider e)
       , MonadError ServantErr (MonadDataProvider e)
       ) =>
       HasCreateMethod e
   where
   type Requester e
-  data CreateActionBody e
-  data CreateActionView e
+  type CreateActionBody e = cAb | cAb -> e
+  type CreateActionView e = cAv | cAv -> e
   create :: CreateActionBody e -> MonadDataProvider e (CreateActionView e)
   create body = do
     model <- liftIO $ deserialize Nothing body

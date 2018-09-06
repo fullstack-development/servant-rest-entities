@@ -11,11 +11,11 @@ import Data.Void
 import GHC.Generics
 import Servant
 
-import RestEntities.DataProvider
+import RestEntities.HasDataProvider.HasDataProvider
 import RestEntities.Permissions
 
 class ( Generic e
-      , HasDataProvider e
+      , HasDeleteableDataProvider e
       , MonadIO (MonadDataProvider e)
       , MonadError ServantErr (MonadDataProvider e)
       ) =>

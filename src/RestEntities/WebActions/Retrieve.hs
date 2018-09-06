@@ -1,5 +1,6 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TypeFamilyDependencies #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
@@ -10,7 +11,7 @@ import Control.Monad.Except
 import Data.Maybe
 import GHC.Generics
 
-import RestEntities.DataProvider
+import RestEntities.HasDataProvider.HasDataProvider
 import RestEntities.Permissions
 import RestEntities.Serializables
 import Servant
@@ -18,7 +19,7 @@ import Servant.Auth.Server
 
 class ( Generic e
       , Serializable e (RetrieveActionView e)
-      , HasDataProvider e
+      , HasLoadableDataProvider e
       , Monad (MonadDataProvider e)
       , MonadIO (MonadDataProvider e)
       , MonadError ServantErr (MonadDataProvider e)
@@ -26,7 +27,7 @@ class ( Generic e
       HasRetrieveMethod e
   where
   type Requester e
-  data RetrieveActionView e
+  type RetrieveActionView e = r | r -> e
   retrieve' ::
        AuthResult (Requester e)
     -> Int

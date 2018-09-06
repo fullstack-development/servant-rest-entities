@@ -9,16 +9,19 @@
 
 module RestEntities.Examples.UsersWithBeamDB.DataSource where
 
-import Data.Typeable
 import Database.Beam
 import Database.Beam.Postgres
 import Database.Beam.Postgres.Syntax
+import Prelude hiding (filter)
 
 import RestEntities.DataProvider
 import qualified RestEntities.Examples.UsersWithBeamDB.Database as DB
 import RestEntities.Examples.UsersWithBeamDB.GenericBeam
 import RestEntities.Examples.UsersWithBeamDB.Model
 import RestEntities.Examples.UsersWithBeamDB.ServerConfig
+import RestEntities.Filter
+import RestEntities.HasDataProvider.HasDataProvider
+import RestEntities.HasDataSourceRun
 import RestEntities.Model
 
 getUserByIdWithAuth :: Int -> Pg (Maybe (DB.User, DB.Auth))
@@ -70,17 +73,8 @@ instance HasDataProvider User where
   type MonadDataProvider User = ServerConfigReader
   type ChildRelations User = SingleChild Auth
   type ParentRelations User = ()
-  loadAll _ =
-    map (\(user, auth) -> unpack user (auth, ())) <$> runDS selectUsersWithAuth
-  save user _ = do
-    (savedUser, savedAuth) <- saveUserFromModel user
-    return $ unpack savedUser (savedAuth, ())
-  deleteById _ = runDS . deleteUserFromDB
-  loadById _ pk = do
-    result <- runDS . getUserByIdWithAuth $ pk
-    let entity =
-          maybe Nothing (\(user, auth) -> Just $ unpack user (auth, ())) result
-    return entity
+  getPK _ = DB._userId
+  getID = userId
   pack user@User {..} _ = (dpUser, dpAuth)
     where
       dpUser =
@@ -101,6 +95,23 @@ instance HasDataProvider User where
       _userIsStaff
       (uncurry unpack relations)
 
+instance HasSaveableDataProvider User where
+  save user _ = do
+    (savedUser, savedAuth) <- saveUserFromModel user
+    return $ unpack savedUser (savedAuth, ())
+
+instance HasLoadableDataProvider User where
+  loadAll _ =
+    map (\(user, auth) -> unpack user (auth, ())) <$> runDS selectUsersWithAuth
+  loadById _ pk = do
+    result <- runDS . getUserByIdWithAuth $ pk
+    let entity =
+          maybe Nothing (\(user, auth) -> Just $ unpack user (auth, ())) result
+    return entity
+
+instance HasDeleteableDataProvider User where
+  deleteById _ = runDS . deleteUserFromDB
+
 type instance FilterFieldValue Auth "id" = Int
 
 instance HasDataProvider Auth where
@@ -108,31 +119,7 @@ instance HasDataProvider Auth where
   type MonadDataProvider Auth = ServerConfigReader
   type ChildRelations Auth = EmptyChild
   type ParentRelations Auth = User
-  save user = pure undefined
-  deleteById _ _ = pure undefined
-  loadById _ _ = pure Nothing
-  loadChildRelations = undefined
-  pack user rels = undefined
+  getPK _ = DB._authId
+  getID = authId
+  pack Auth {..} _ = (DB.Auth (fromId authId) authPassword authCreatedAt, ())
   unpack DB.Auth {..} _ = Auth (Id _authId) _authPassword _authCreatedAt
-  filter [filtering] = do
-    let q =
-          case cast filtering of
-            Just (ByEqField _ value :: Filter Auth "id") ->
-              Just $ queryById value
-            Nothing -> Nothing
-    case q of
-      Just query -> do
-        entities <-
-          runDS (runSelectReturningList $ select query :: Pg [DB.Auth])
-        relations <- mapM (loadChildRelations (Proxy :: Proxy Auth)) entities
-        let denormalized = zip entities relations
-        let models = map (uncurry unpack) denormalized :: [Auth]
-        return models
-      Nothing -> return []
-    where
-      queryById ::
-           Int
-        -> Q PgSelectSyntax DB.DemoBeamRestDb s (DB.AuthT (QExpr PgExpressionSyntax s))
-      queryById pk =
-        filter_ (\a -> DB._authId a ==. val_ pk) $
-        all_ (DB._auth DB.demoBeamRestDb)

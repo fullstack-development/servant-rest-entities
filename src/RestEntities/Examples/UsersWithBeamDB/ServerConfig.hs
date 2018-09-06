@@ -15,7 +15,7 @@ import Database.Beam.Postgres (Pg)
 import Servant
 import Servant.Auth.Server
 
-import RestEntities.DataProvider
+import RestEntities.HasDataSourceRun
 
 data ServerConfig = ServerConfig
   { port :: Int

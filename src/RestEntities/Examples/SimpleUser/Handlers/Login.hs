@@ -22,9 +22,9 @@ import qualified Data.CaseInsensitive as CI
 import qualified Data.List as L
 import qualified Data.Text as T
 import GHC.Generics
-import RestEntities.DataProvider
 import RestEntities.Examples.SimpleUser.DataSource ()
 import RestEntities.Examples.SimpleUser.Model
+import RestEntities.HasDataProvider.HasDataProvider
 import Servant
 import Servant.Auth.Server
 import qualified Web.Cookie as Cookie

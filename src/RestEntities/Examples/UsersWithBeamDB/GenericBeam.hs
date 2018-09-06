@@ -22,6 +22,7 @@ import Database.Beam.Schema.Tables
 
 import RestEntities.DataProvider hiding (save)
 import RestEntities.Examples.UsersWithBeamDB.ServerConfig
+import RestEntities.HasDataSourceRun
 
 import qualified RestEntities.Examples.UsersWithBeamDB.Database as DB
 
