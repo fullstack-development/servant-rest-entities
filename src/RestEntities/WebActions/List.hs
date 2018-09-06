@@ -1,5 +1,6 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TypeFamilyDependencies #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
@@ -23,7 +24,7 @@ class ( Generic e
       ) =>
       HasListMethod e
   where
-  data ListActionView e
+  type ListActionView e = l | l -> e
   list :: MonadDataProvider e [ListActionView e]
   list = fmap serialize <$> loadAll (Proxy :: Proxy e)
   checkAccessPermission :: AccessPermissionCheck Void (MonadDataProvider e) e

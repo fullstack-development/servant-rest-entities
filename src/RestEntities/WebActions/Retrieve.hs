@@ -1,5 +1,6 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TypeFamilyDependencies #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
@@ -26,7 +27,7 @@ class ( Generic e
       HasRetrieveMethod e
   where
   type Requester e
-  data RetrieveActionView e
+  type RetrieveActionView e = r | r -> e
   retrieve' ::
        AuthResult (Requester e)
     -> Int

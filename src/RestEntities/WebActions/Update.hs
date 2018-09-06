@@ -1,5 +1,6 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TypeFamilyDependencies #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
@@ -26,8 +27,8 @@ class ( Generic e
       ) =>
       HasUpdateMethod e
   where
-  data UpdateActionBody e
-  data UpdateActionView e
+  type UpdateActionBody e = uAb | uAb -> e
+  type UpdateActionView e = uAv | uAv -> e
   update ::
        Int -> UpdateActionBody e -> (MonadDataProvider e) (UpdateActionView e)
   update entityId body = do
