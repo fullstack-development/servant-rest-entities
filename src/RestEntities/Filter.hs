@@ -10,10 +10,10 @@ import GHC.Generics
 import GHC.TypeLits
 
 data Filter entity (field :: Symbol)
-  = ByEqField (Proxy field)
-              (FilterFieldValue entity field)
-  | ByContainingFieldIn (Proxy field)
-                        [FilterFieldValue entity field]
+  = ByEqField { eqFieldProxy :: Proxy field
+              , eqFieldValue :: FilterFieldValue entity field }
+  | ByContainingFieldIn { containingFieldProxy :: Proxy field
+                        , containingFieldValues :: [FilterFieldValue entity field] }
   deriving (Generic, Typeable)
 
 type family FilterFieldValue entity (field :: Symbol)
